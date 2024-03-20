@@ -16,7 +16,7 @@ import os, time  # for paths and data
 # from IPython import embed as shell # for Olympia debugging only, comment out if crashes
 
 debug_mode = True #20x6 trials when False, True=6 trials
-eye_mode = False
+eye_mode = True
 
 """
 PARAMETERS
@@ -35,7 +35,7 @@ button_names = ['top', 'middle' , 'bottom']
 # Set trial conditions and randomize stimulus list
 REPS = 20    # times to repeat trial unit full experiment
 if debug_mode:
-    reps      = 30 # debug mode reps
+    reps      = 1 # debug mode reps
 else:
     reps      = REPS
 
@@ -122,9 +122,9 @@ if subject_ID:
     ### CONFIG & CALIBRATION EYE-TRACKER ###
     if eye_mode:
         import funcs_pylink as eye
-        task = 'tracking touch prediction'
+        task = 'tracking_touch_prediction'
         eye.config(subject_ID,task)
-        eye.run_calibration(win,p.scnWidth, p.scnHeight)
+        eye.run_calibration(win, p.scnWidth, p.scnHeight)
         eye.start_recording()
         eye.send_message('subject_ID sub-{} task-{} timestamp {}'.format(subject_ID, task ,timestr))
     
