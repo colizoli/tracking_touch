@@ -22,8 +22,8 @@ eye_mode = True
 PARAMETERS
 """
 # Screen-specific parameters lab B.00.80A
-# scnWidth, scnHeight = (1920, 1080)
-scnWidth, scnHeight = (800, 600)
+scnWidth, scnHeight = (1920, 1080)
+# scnWidth, scnHeight = (800, 600) # for debugging
 screen_width        = 53.5 # centimeters
 screen_dist         = 58.0
 grey = [128,128,128]
@@ -121,10 +121,10 @@ if subject_ID:
     
     ### CONFIG & CALIBRATION EYE-TRACKER ###
     if eye_mode:
-        import funcs_pylink as eye
+        import funcs_pylink3 as eye
         task = 'tracking_touch_prediction'
         eye.config(subject_ID,task)
-        eye.run_calibration(win, p.scnWidth, p.scnHeight)
+        eye.run_calibration(win, scnWidth, scnHeight)
         eye.start_recording()
         eye.send_message('subject_ID sub-{} task-{} timestamp {}'.format(subject_ID, task ,timestr))
     
@@ -149,8 +149,8 @@ if subject_ID:
         # Pupil baseline
         stim_fix.draw() 
         win.flip()
-        if eye_mode:
-            eye.send_message('trial {} new trial baseline phase 1'.format(trial_num))
+        #if eye_mode:
+            # eye.send_message('trial {} new trial baseline phase 1'.format(trial_num))
         core.wait(t_baseline) 
         
         # Touch 1
