@@ -1,25 +1,24 @@
-"""
-PsychoPy EyeLink functions using pylink
-python3
-"""
+#!/usr/bin/env python3
+#
+# Filename: basic_example.py
+# Author: Zhiguo Wang
+# Date: 3/16/2021
+#
+# Description:
+# A very basic script showing how to connect/disconnect the tracker,
+# open/close EDF data file, configure tracking parameter, calibrate 
+# tracker, start/stop recording, and log messages in the data file
 
-# IMPORTANT: If you use a screen units other than 'pix', please bear in mind
-# that the drift-correction target position needs to be specified in screen
-# pixel coordinates, and the gaze coordinates returned by pylink are also in
-# screen pixels, with the top-left corner of the screen as the origin (0,0).
-
-# import libraries
 import pylink, numpy, os, time
 from EyeLinkCoreGraphicsPsychoPy_2024 import EyeLinkCoreGraphicsPsychoPy # this file needs to be in experiment directory
 from psychopy import visual, core, event, monitors
 from PIL import Image
-#from IPython import embed as shell
 
 global tk,dataFileName,dataFolder
 tk = None
 dataFileName = None
 dataFolder = None
-    
+
 def config(subject_ID,task):
     # established a link to the tracker
     global tk, dataFileName,dataFolder
@@ -33,8 +32,8 @@ def config(subject_ID,task):
     print(subject_ID)
     print(task)
     dataFileName = str(subject_ID)+".EDF"; # can't be longer than 8 letters
-    tk.openDataFile(dataFileName)
-        
+    tk.openDataFile(dataFileName) # open an EDF data file on the EyeLink Host PC
+
 
 def run_calibration(win,scnWidth,scnHeight):
     # Initialize custom graphics for camera setup & drift correction
@@ -115,8 +114,8 @@ def start_recording():
     #determine which eye(s) are available
     eyeTracked = tk.eyeAvailable() 
     if eyeTracked==2: eyeTracked = 1
-        
-        
+    
+    
 def stop_recording(timestr,task):
     # stop recording, transfer EDF file to stimulus computer, rename and timestamp
     global tk, dataFileName, dataFolder
@@ -133,8 +132,8 @@ def stop_recording(timestr,task):
     #close the link to the tracker, graphics
     tk.close()
     pylink.closeGraphics()
-
-
+    
+    
 def stop_skip_save():
     # exiting early from task, don't save EDF
     global tk
@@ -183,4 +182,3 @@ def run_drift_correction(win,scnWidth, scnHeight):
         tk.doTrackerSetup()
         error = tk.startRecording(1,1,1,1)
         pylink.pumpDelay(100) # wait for 100 ms to make sure data of interest is recorded
-    
