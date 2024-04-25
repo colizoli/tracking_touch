@@ -43,7 +43,7 @@ if debug_mode:
 else:
     reps      = REPS
 
-break_trials = [25,50]
+break_trials = [20,40]
 
 # Timing in seconds
 t_baseline  = 0.5   # baseline pupil
