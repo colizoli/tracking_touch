@@ -80,7 +80,7 @@ def select_channel(channel_no, electrode_selection_task):
 
 
 #1mv=1mikroA
-def administer_touch(channel=1, this_intensity):
+def administer_touch(this_intensity, channel=1):
 
     num_pulses = 10
     signal_duration = 25 # ms
