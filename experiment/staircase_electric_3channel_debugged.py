@@ -170,8 +170,8 @@ def run_experiment():
                 stepSizes=[3, 3, 2, 2, 1, 1],
                 nReps = 10,
                 nTrials = 10,
-                nUp=3,
-                nDown=1,
+                nUp=1,
+                nDown=3,
                 minVal=10,
                 maxVal=max_val,
             )
