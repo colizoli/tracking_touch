@@ -261,6 +261,10 @@ if subject_ID:
         
         # break!!
         if trial_num in break_trials:
+            
+            if eye_mode:
+                eye.pause_stop_recording() # pause recording
+            
             # Break instructions forced 
             stim_instr.setText('Take a short break!')
             stim_instr.draw()
@@ -272,6 +276,10 @@ if subject_ID:
             stim_instr.draw()
             win.flip()
             event.waitKeys()
+            
+            if eye_mode:
+                # Drift correction, when subject moves their head during breaks
+                eye.run_drift_correction(win, p.scnWidth, p.scnHeight)
                
     # End screen for participants
     stim_instr.setText('Well done! Data transfering.....')
