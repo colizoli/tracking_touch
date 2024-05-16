@@ -156,6 +156,7 @@ def run_experiment():
         ds5_task.ao_channels.add_ao_voltage_chan(
             "Dev2/ao0", min_val=-4.0, max_val=4.0, units=VoltageUnits.VOLTS
         )
+        
         digital_task.do_channels.add_do_chan(
             "Dev2/port0/line0:7",
             line_grouping=nidaqmx.constants.LineGrouping.CHAN_PER_LINE,
@@ -246,10 +247,8 @@ def run_experiment():
 
             # save data (separate txt file for each staircase)
             df = pd.DataFrame(np.array(save_intensities))
-            df = df.T
-            shell()
-            df.to_csv(os.path.join(logfile_dir, 'sub-{}_staircase_{}.txt'.format(subject_ID, channel_no)))
-            thisStair.saveAsText(os.path.join(logfile_dir, 'sub-{}_staircase_{}.csv'.format(subject_ID, channel_no)))
+            df.to_csv(os.path.join(logfile_dir, 'sub-{}_staircase_{}.csv'.format(subject_ID, channel_no)))
+            #thisStair.saveAsText(os.path.join(logfile_dir, 'sub-{}_staircase_{}.txt'.format(subject_ID, channel_no)))
 run_experiment()
     
     

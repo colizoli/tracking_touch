@@ -26,8 +26,8 @@ def config(subject_ID,task):
     # Open an EDF data file EARLY
     # Note that the file name cannot exceeds 8 characters
     # please open eyelink data files early to record as much info as possible
-    cwd = os.getcwd()
-    dataFolder = os.path.join(cwd, 'raw', 'sub-{}'.format(subject_ID)) 
+    #cwd = os.getcwd()
+    dataFolder = os.path.join('sourcedata', 'sub-{}'.format(subject_ID)) 
     if not os.path.exists(dataFolder): os.makedirs(dataFolder)
     print(subject_ID)
     print(task)
