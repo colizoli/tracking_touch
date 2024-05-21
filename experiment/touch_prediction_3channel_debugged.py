@@ -29,30 +29,33 @@ hard_path = os.path.join("d:","users","Tamar", "tracking_touch-main", "experimen
 os.chdir(hard_path)
 
 # Screen-specific parameters lab B.00.80A
-# scnWidth, scnHeight = (1920, 1080)
-scnWidth, scnHeight = (800, 600) # for debugging
+scnWidth, scnHeight = (1920, 1080)
+#scnWidth, scnHeight = (800, 600) # for debugging
 screen_width        = 53.5 # centimeters
 screen_dist         = 58.0
 grey = [128,128,128]
 
 # response buttons
-buttons = ['1', '2', '3'] # top, middle, bottom
+buttons = ['left', 'down', 'right'] # top, middle, bottom
 button_names = ['top', 'middle' , 'bottom']
 
 # Set trial conditions and randomize stimulus list
-REPS = 20    # times to repeat trial unit full experiment
+REPS = 60    # times to repeat trial unit full experiment
 if debug_mode:
     reps      = 1 # debug mode reps
 else:
     reps      = REPS
 
-break_trials = [20,40]
+break_trials = [20,40,60,80,100,120,140,160]
+
+# multiply intensities
+int_mult = 1.2
 
 # Timing in seconds
 t_baseline  = 1   # baseline pupil
-t_touch     = 1
-t_response  = 2
-t_feedback  = 1
+t_touch     = 1.5
+t_response  = 3
+t_feedback  = 1.5
 t_ITI       = [3.5,5.5]
 
 # touch distributions
@@ -89,10 +92,12 @@ if subject_ID:
     staircase3 = pd.read_csv(os.path.join(logfile_dir, 'sub-{}_staircase_{}.csv'.format(subject_ID, 3)))
     
     touch_intensities = [
-        np.array(staircase1['0'])[-1],    # top 
-        np.array(staircase2['0'])[-1],  # middle
-        np.array(staircase3['0'])[-1],  # bottom         
+        np.array(staircase1['0'])[-2],  # top 
+        np.array(staircase2['0'])[-2],  # middle
+        np.array(staircase3['0'])[-2],  # bottom         
         ]
+    
+    touch_intensities = touch_intensities*np.array(int_mult)
         
     ## output file name with time stamp prevents any overwriting of data
     timestr = time.strftime("%Y%m%d-%H%M%S") 
@@ -118,18 +123,25 @@ if subject_ID:
     welcome_txt = "Touch prediction\
     \nYou will be touched on part of your finger twice in a row.\
     \nYour task is to predict where the 2nd touch will be.\
-    \nAfter the first touch, press the Top/Middle/Bottom (1/2/3) key as fast as possible to indicate your prediction.\
+    \nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key as fast as possible to indicate your prediction.\
     \n\nMaintain fixation on the '+' in the center of the screen for the duration of the experiment.\
     \nYou will have several breaks during which you can move your head/eyes.\
     \nBlink as you normally would.\
     \n\n<Press any button to BEGIN>"
     
+    stim_size = (40,40)
+    stim_fix        = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
+    stim_touch      = visual.ImageStim(win, image=os.path.join('stimuli', 'kruis.png'), size=stim_size)
+    stim_resp       = visual.ImageStim(win, image=os.path.join('stimuli', 'ruit.png'), size=stim_size)
+    stim_ITI        = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
+    stim_instr      = visual.TextStim(win, color='black', pos=(0.0, 0.0), wrapWidth=ww)
+
     stim_instr      = visual.TextStim(win, color='black', pos=(0.0, 0.0), wrapWidth=ww) 
-    stim_fix        = visual.TextStim(win, text='+',color='black', pos=(0.0, 0.0), height=fh)
-    stim_touch      = visual.TextStim(win, text='Touch',color='black', pos=(0.0, 0.0), height=fh)
-    stim_resp       = visual.TextStim(win, text='Response',color='black', pos=(0.0, 0.0), height=fh)
-    stim_feedback   = visual.TextStim(win, text='Feedback',color='black', pos=(0.0, 0.0), height=fh)
-    stim_ITI        = visual.TextStim(win, text='ITI',color='black', pos=(0.0, 0.0), height=fh)
+    #stim_fix        = visual.TextStim(win, text='+',color='black', pos=(0.0, 0.0), height=fh)
+    #stim_touch      = visual.TextStim(win, text='Touch',color='black', pos=(0.0, 0.0), height=fh)
+    #stim_resp       = visual.TextStim(win, text='Response',color='black', pos=(0.0, 0.0), height=fh)
+    #stim_feedback   = visual.TextStim(win, text='Feedback',color='black', pos=(0.0, 0.0), height=fh)
+    #stim_ITI        = visual.TextStim(win, text='ITI',color='black', pos=(0.0, 0.0), height=fh)
     
     trials = touch1*reps
     np.random.shuffle(trials) # shuffle order of colors      
@@ -195,7 +207,7 @@ if subject_ID:
             stim_resp.draw()
             win.flip()
             if not respond:
-                respond = event.waitKeys(maxWait = t_response-clock.getTime() ,keyList=buttons, timeStamped=clock)
+                respond = event.waitKeys(maxWait = t_response-clock.getTime(), keyList=buttons, timeStamped=clock)
         
         if respond:
             response, latency = respond[0]
@@ -209,7 +221,7 @@ if subject_ID:
         #Touch 2 - Present feedback (second touch)
         feedback = touch2[t-1][random.randint(0,9)]
         t2_intensity = touch_intensities[feedback-1]
-        stim_feedback.draw() 
+        stim_touch.draw() 
         win.flip()
         if eye_mode:
             eye.send_message('trial {} touch2 {} phase 4'.format(trial_num, feedback)) # is this indeed touch? -Tamar
@@ -238,7 +250,10 @@ if subject_ID:
                 core.quit()
         
         # correct response?
-        correct = str(feedback) == response
+        if response == 'missing':
+            correct = 0
+        else:
+            correct = feedback == buttons.index(response)+1 # index of buttons codes + 1 for finger 1,2,3
         
         # output data frame on each trial --> how should this be changed? - Tamar
         # ['subject','trial_num','touch1','touch2','response','correct','RT','ITI','t1_intensity','t2_intensity']

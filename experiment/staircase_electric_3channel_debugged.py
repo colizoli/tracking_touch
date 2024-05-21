@@ -9,7 +9,6 @@ from psychopy import visual, data
 from IPython import embed as shell # for olympia debugging only
 
 # TODO: Check the conversion between the DS5 and national instruments, how much V=mA
-# Why are logfiles being saved in C: Experiment-22? something with virtual environment?
 
 """
 PARAMETERS
@@ -26,7 +25,7 @@ N_TRIALS_PER_CHANNEL = 2
 
 # response buttons
 detection_button = 'd' # when stimulus is detected, otherwise
-nothing_button = 'j'
+nothing_button = 'f'
 
 # Screen-specific parameters lab B.00.80A
 # scnWidth, scnHeight = (1920, 1080)
@@ -114,7 +113,7 @@ def initialize_subject():
     welcome_txt = "Touch detection\
     \nWe will determine your individual threshold for feeling touch.\
     \nYour task is to indicate when you feel any sensation on either of your 3 fingers.\
-    \nIf you feel any sensation at all, press D. If you feel nothing at all, then press J\
+    \nIf you feel any sensation at all, press D. If you feel nothing at all, then press F\
     \n\nThis procedure will take a couple of minutes for each finger.\
     \n\n<Press any button to BEGIN>"
     
@@ -135,7 +134,7 @@ def run_experiment():
     subject_ID, logfile_dir = initialize_subject()
     stim_finger = visual.TextStim(win, text='Finger', color='black', pos=(0.0, 0.0))
     stim_fix    = visual.TextStim(win, text='+',color='black', pos=(0.0, 0.0))
-    stim_touch  = visual.TextStim(win, text='Did you feel any touch? \n\n Yes ("D")      No ("J")',color='black', pos=(0.0, 0.0))
+    stim_touch  = visual.TextStim(win, text='Did you feel any touch? \n\n Yes ("D")      No ("F")',color='black', pos=(0.0, 0.0))
     
     # Which channels to use
     used_channels = [1, 2, 3]
@@ -167,9 +166,8 @@ def run_experiment():
             
             thisStair = data.StairHandler(
                 startVal=start_val,
-                nReversals = 6,
+                nReversals = 8,
                 stepSizes=[3, 3, 2, 2, 1, 1],
-                nReps = 10,
                 nTrials = 10,
                 nUp=1,
                 nDown=3,

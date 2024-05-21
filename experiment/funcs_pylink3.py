@@ -91,7 +91,7 @@ def run_calibration(win,scnWidth,scnHeight):
         tk.sendCommand("link_sample_data  = LEFT,RIGHT,GAZE,GAZERES,AREA,STATUS,INPUT")
         
     # show some instructions here.
-    txt = visual.TextStim(win, text = '(For Researcher) Press ENTER TWICE to see calibration options')
+    txt = visual.TextStim(win, text = '(For Researcher) Press ENTER to see calibration options')
     txt.draw()
     win.flip()
     event.waitKeys()
