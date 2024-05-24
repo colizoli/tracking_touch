@@ -28,8 +28,8 @@ detection_button = 'd' # when stimulus is detected, otherwise
 nothing_button = 'f'
 
 # Screen-specific parameters lab B.00.80A
-# scnWidth, scnHeight = (1920, 1080)
-scnWidth, scnHeight =(1500, 600) # for debugging
+scnWidth, scnHeight = (1920, 1080)
+# scnWidth, scnHeight = (1500, 600) # for debugging
 screen_width        = 53.5 # centimeters
 screen_dist         = 58.0
 grey = [128,128,128]
