@@ -18,7 +18,7 @@ import digitimer_functions
 
 # TO DO: add drift correction after break!
 
-debug_mode = True #20x6 trials when False, True=6 trials
+debug_mode = False #20x6 trials when False, True=6 trials
 touch_mode = True
 
 """
