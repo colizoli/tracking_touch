@@ -120,28 +120,35 @@ if subject_ID:
     win.setMouseVisible(False)
     
     # Set-up stimuli and timing
-    welcome_txt = "Touch prediction\
+    instr1_txt = "Touch prediction\
     \nYou will be touched on part of your finger twice in a row.\
-    \nYour task is to predict where the 2nd touch will be.\
-    \nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key as fast as possible to indicate your prediction.\
+    \nYOUR TASK IS TO PREDICT WHERE THE 2ND TOUCH WILL BE.\
+    \nGive your prediction for the finger of the 2nd touch when you see the DIAMOND symbol appear.\
+    \n\nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key to indicate your prediction.\
     \n\nMaintain fixation on the '+' in the center of the screen for the duration of the experiment.\
     \nYou will have several breaks during which you can move your head/eyes.\
-    \nBlink as you normally would.\
-    \n\n<Press any button to BEGIN>"
+    \nBlink as you normally would, but do not move your left hand during the experiment.\
+    \n\n<Press any button to CONTINUE INSTRUCTIONS>"
+    
+    instr2_txt = "Now the actual experiment will begin!\
+    \nThere will be 9 blocks in total (~5 min each), each with several trials.\
+    \nIn between the blocks, you can take a break to move your head.\
+    \n\nWhen you are ready to continue with the next block,\
+    \nplace your head back in the chin rest and fixate the dot at the center of the screen.\
+    \n\nAgain the keys are Index/Middle/Ring finger: Left/ Down /Right arrow keys.\
+    \n\n<Press any button to BEGIN the EXPERIMENT>"
+    
+    break_text = "Take a short break!\
+    \n\nAgain the keys are Index/Middle/Ring finger: Left/ Down /Right arrow keys.\
+    \n\nPush any button when you are ready to CONTINUE."
+     
+    stim_instr   = visual.TextStim(win, text=instr1_txt, color='black', pos=(0.0, 0.0), wrapWidth=ww)
     
     stim_size = (40,40)
     stim_fix        = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
     stim_touch      = visual.ImageStim(win, image=os.path.join('stimuli', 'kruis.png'), size=stim_size)
     stim_resp       = visual.ImageStim(win, image=os.path.join('stimuli', 'ruit.png'), size=stim_size)
     stim_ITI        = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
-    stim_instr      = visual.TextStim(win, color='black', pos=(0.0, 0.0), wrapWidth=ww)
-
-    stim_instr      = visual.TextStim(win, color='black', pos=(0.0, 0.0), wrapWidth=ww) 
-    #stim_fix        = visual.TextStim(win, text='+',color='black', pos=(0.0, 0.0), height=fh)
-    #stim_touch      = visual.TextStim(win, text='Touch',color='black', pos=(0.0, 0.0), height=fh)
-    #stim_resp       = visual.TextStim(win, text='Response',color='black', pos=(0.0, 0.0), height=fh)
-    #stim_feedback   = visual.TextStim(win, text='Feedback',color='black', pos=(0.0, 0.0), height=fh)
-    #stim_ITI        = visual.TextStim(win, text='ITI',color='black', pos=(0.0, 0.0), height=fh)
     
     trials = touch1*reps
     np.random.shuffle(trials) # shuffle order of colors      
@@ -160,7 +167,13 @@ if subject_ID:
         eye.send_message('subject_ID sub-{} task-{} timestamp {}'.format(subject_ID, task ,timestr))
     
     # Welcome instructions
-    stim_instr.setText(welcome_txt)
+    stim_instr.setText(instr1_txt)
+    stim_instr.draw()
+    win.flip()
+    core.wait(0.25)
+    event.waitKeys()
+    
+    stim_instr.setText(instr2_txt)
     stim_instr.draw()
     win.flip()
     core.wait(0.25)
@@ -286,7 +299,7 @@ if subject_ID:
             core.wait(0.5)
             
             # Break instructions continue
-            stim_instr.setText('Take a short break! \n\n Push a button when you are ready to continue.')
+            stim_instr.setText(break_text)
             stim_instr.draw()
             win.flip()
             event.waitKeys()

@@ -18,7 +18,7 @@ import digitimer_functions
 
 # TO DO: add drift correction after break!
 
-debug_mode = False #20x6 trials when False, True=6 trials
+debug_mode = True #20x6 trials when False, True=6 trials
 touch_mode = True
 
 """
@@ -106,29 +106,31 @@ if subject_ID:
     win.setMouseVisible(False)
     
     # Set-up stimuli and timing
-    welcome_txt = "PRACTICE Touch prediction\
+    instr1_txt = "PRACTICE Touch prediction\
     \nYou will be touched on part of your finger twice in a row.\
-    \nYour task is to predict where the 2nd touch will be.\
-    \nFor the practice trials, the 2nd touch will always be on the same finger as the 1st touch!\
-    \nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key as fast as possible to indicate your prediction.\
-    \n\nMaintain fixation on the '+' in the center of the screen for theq duration of the experiment.\
-    \nBlink as you normally would.\
-    \n\n<Press any button to BEGIN>"
+    \nYOUR TASK IS TO PREDICT WHERE THE 2ND TOUCH WILL BE.\
+    \n\nFor these practice trials, the 2nd touch will ALWAYS be on the same finger as the 1st touch!\
+    \n\nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key to indicate your prediction.\
+    \n\nMaintain fixation on the '+' in the center of the screen for the duration of the experiment.\
+    \nBlink as you normally would, but do not move your left hand during the experiment.\
+    \n\n<Press any button to CONTINUE INSTRUCTIONS>"
+    
+    instr2_txt = "Below is a visual example of each trial of the experiment.\
+    \nGive your prediction for the finger of the 2nd touch when you see the DIAMOND symbol appear.\
+    \n\nAfter the first touch, press the Index/Middle/R\ing finger (Left/ Down /Right) key as fast as possible to indicate your prediction.\
+    \n\n<Press any button to BEGIN the PRACTICE TRIALS>"
+    
+    stim_instr1   = visual.TextStim(win, text=instr1_txt, color='black', pos=(0.0, 0.0), wrapWidth=ww)
+    stim_instr2a  = visual.TextStim(win, text=instr2_txt, color='black', pos=(0.0, 100.0), wrapWidth=ww)
+    stim_instr2b  = visual.ImageStim(win, image=os.path.join('stimuli', 'trial.png'), pos=(0.0, -200.0))
     
     stim_size = (40,40)
-    stim_fix        = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
-    stim_touch      = visual.ImageStim(win, image=os.path.join('stimuli', 'kruis.png'), size=stim_size)
-    stim_resp       = visual.ImageStim(win, image=os.path.join('stimuli', 'ruit.png'), size=stim_size)
-    stim_ITI        = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
-    stim_instr      = visual.TextStim(win, color='black', pos=(0.0, 0.0), wrapWidth=ww)
-
-    # stim_fix        = visual.TextStim(win, text='+',color='black', pos=(0.0, 0.0), height=fh)
-    # stim_touch      = visual.TextStim(win, text='Touch',color='black', pos=(0.0, 0.0), height=fh)
-    # stim_resp       = visual.TextStim(win, text='Response',color='black', pos=(0.0, 0.0), height=fh)
-    # stim_feedback   = visual.TextStim(win, text='Feedback',color='black', pos=(0.0, 0.0), height=fh)
-    stim_correct    = visual.TextStim(win, text='Good job!',color='green', pos=(0.0, 0.0), height=fh)
-    stim_error      = visual.TextStim(win, text='Try again...',color='red', pos=(0.0, 0.0), height=fh)
-    # stim_ITI        = visual.TextStim(win, text='ITI',color='black', pos=(0.0, 0.0), height=fh)
+    stim_fix     = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
+    stim_touch   = visual.ImageStim(win, image=os.path.join('stimuli', 'kruis.png'), size=stim_size)
+    stim_resp    = visual.ImageStim(win, image=os.path.join('stimuli', 'ruit.png'), size=stim_size)
+    stim_correct = visual.TextStim(win, text='Good job!',color='green', pos=(0.0, 0.0), height=fh)
+    stim_error   = visual.TextStim(win, text='Try again...',color='red', pos=(0.0, 0.0), height=fh)
+    stim_ITI     = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
     
     trials = touch1*reps
     np.random.shuffle(trials) # shuffle order of colors      
@@ -138,8 +140,14 @@ if subject_ID:
     clock = core.Clock()
     
     # Welcome instructions
-    stim_instr.setText(welcome_txt)
-    stim_instr.draw()
+    # stim_instr1.setText(welcome_txt)
+    stim_instr1.draw()
+    win.flip()
+    core.wait(0.25)
+    event.waitKeys()
+    
+    stim_instr2a.draw()
+    stim_instr2b.draw()
     win.flip()
     core.wait(0.25)
     event.waitKeys()
