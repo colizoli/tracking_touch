@@ -630,7 +630,7 @@ class higherLevel(object):
             if pupil_dv == 'correct':
                 ax.set_ylim([0.0,1.])
                 ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.2))
-                ax.axhline(0.5, linestyle='--', lw=1, alpha=1, color = 'k') # Add dashed horizontal line at chance level
+                ax.axhline(0.33, linestyle='--', lw=1, alpha=1, color = 'k') # Add dashed horizontal line at chance level
             else:
                 ax.set_ylim([0.2,1.8]) #RT
                 ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.4))
@@ -1051,64 +1051,33 @@ class higherLevel(object):
         -----
         6 letters and 6 shades of green -> 36 different letter-color pair combinations.
         
-        New column name is "letter_color_pair"
+        New column name is "touch_pair"
         """
-        df_in = pd.read_csv(fn_in, float_precision='%.16f')
+        df_in = pd.read_csv(fn_in, float_precision='high')
         
         # make new column to give each letter-color combination a unique identifier (1 - 36)        
         mapping = [
-            # KEEP ORIGINAL MAPPINGS TO SEE 'FLIP'
-            (df_in['letter'] == 'A') & (df_in['r'] == 76), 
-            (df_in['letter'] == 'A') & (df_in['r'] == 157), 
-            (df_in['letter'] == 'A') & (df_in['r'] == 0), 
-            (df_in['letter'] == 'A') & (df_in['r'] == 3), 
-            (df_in['letter'] == 'A') & (df_in['r'] == 138), 
-            (df_in['letter'] == 'A') & (df_in['r'] == 75), 
-            #
-            (df_in['letter'] == 'D') & (df_in['r'] == 76), 
-            (df_in['letter'] == 'D') & (df_in['r'] == 157), 
-            (df_in['letter'] == 'D') & (df_in['r'] == 0), 
-            (df_in['letter'] == 'D') & (df_in['r'] == 3), 
-            (df_in['letter'] == 'D') & (df_in['r'] == 138), 
-            (df_in['letter'] == 'D') & (df_in['r'] == 75), 
-            #
-            (df_in['letter'] == 'I') & (df_in['r'] == 76), 
-            (df_in['letter'] == 'I') & (df_in['r'] == 157), 
-            (df_in['letter'] == 'I') & (df_in['r'] == 0), 
-            (df_in['letter'] == 'I') & (df_in['r'] == 3), 
-            (df_in['letter'] == 'I') & (df_in['r'] == 138), 
-            (df_in['letter'] == 'I') & (df_in['r'] == 75), 
-            #
-            (df_in['letter'] == 'O') & (df_in['r'] == 76), 
-            (df_in['letter'] == 'O') & (df_in['r'] == 157), 
-            (df_in['letter'] == 'O') & (df_in['r'] == 0), 
-            (df_in['letter'] == 'O') & (df_in['r'] == 3), 
-            (df_in['letter'] == 'O') & (df_in['r'] == 138), 
-            (df_in['letter'] == 'O') & (df_in['r'] == 75), 
-            #
-            (df_in['letter'] == 'R') & (df_in['r'] == 76), 
-            (df_in['letter'] == 'R') & (df_in['r'] == 157), 
-            (df_in['letter'] == 'R') & (df_in['r'] == 0), 
-            (df_in['letter'] == 'R') & (df_in['r'] == 3), 
-            (df_in['letter'] == 'R') & (df_in['r'] == 138), 
-            (df_in['letter'] == 'R') & (df_in['r'] == 75), 
-            #
-            (df_in['letter'] == 'T') & (df_in['r'] == 76),  
-            (df_in['letter'] == 'T') & (df_in['r'] == 157), 
-            (df_in['letter'] == 'T') & (df_in['r'] == 0), 
-            (df_in['letter'] == 'T') & (df_in['r'] == 3), 
-            (df_in['letter'] == 'T') & (df_in['r'] == 138), 
-            (df_in['letter'] == 'T') & (df_in['r'] == 75), 
+            (df_in['touch1'] == 1) & (df_in['touch2'] == 1), 
+            (df_in['touch1'] == 1) & (df_in['touch2'] == 2), 
+            (df_in['touch1'] == 1) & (df_in['touch2'] == 3), 
+            
+            (df_in['touch1'] == 2) & (df_in['touch2'] == 1), 
+            (df_in['touch1'] == 2) & (df_in['touch2'] == 2), 
+            (df_in['touch1'] == 2) & (df_in['touch2'] == 3),
+            
+            (df_in['touch1'] == 3) & (df_in['touch2'] == 1), 
+            (df_in['touch1'] == 3) & (df_in['touch2'] == 2), 
+            (df_in['touch1'] == 3) & (df_in['touch2'] == 3),
             ]
         
-        elements = np.arange(36) # also elements is the same as priors (start with 0 so they can be indexed by element)
-        df_in['letter_color_pair'] = np.select(mapping, elements)
+        elements = np.arange(9) # also elements is the same as priors (start with 0 so they can be indexed by element)
+        df_in['touch_pair'] = np.select(mapping, elements)
         
         df_in.to_csv(fn_in, float_format='%.16f') # save with new columns
         print('success: information_theory_code_stimuli')   
     
 
-    def idt_model(self, df, df_data_column, elements, priors):
+    def idt_model(self, df, df_data_column, elements):
         """Process Ideal Learner Model.
         
         Parameters
@@ -1122,9 +1091,6 @@ class higherLevel(object):
         elements : list
             The list of unique indentifiers for the cue-target pairs.
         
-        priors : list
-            The list of priors as probabilities.
-        
         Returns
         -------
         [model_e, model_P, model_p, model_I, model_i, model_H, model_CH, model_D]: list
@@ -1135,7 +1101,7 @@ class higherLevel(object):
         Ideal Learner Model adapted from Poli, Mars, & Hunnius (2020).
         See also: https://github.com/FrancescPoli/eye_processing/blob/master/ITDmodel.m
         
-        Priors are generated from the probabilities of the letter-color pair in the odd-ball task.
+        Using uniform priors.
         
         Model Output Notes:
         model_e = trial sequence
@@ -1161,25 +1127,20 @@ class higherLevel(object):
         model_D = []  # KL-divergence at current trial
     
         # loop trials
-        for t in np.arange(df.shape[0]):
+        for t,trial_counter in enumerate(df['trial_num']):
             vector = data[:t+1] #  trial number starts at 0, all the targets that have been seen so far
             
             model_e.append(vector[-1])  # element in current trial = last element in the vector
             
             # print(vector)
             if t < 1: # if it's the first trial, our expectations are based only on the prior (values)
-                # PRIORS BASED ON ODDBALL TASK
-                alpha1 = priors*len(elements) # np.sum(alpha) == len(elements), priors from odd-ball task
-                p1 = priors # priors based on odd-ball task, np.sum(priors) should equal 1
+                # FLAT PRIORS
+                alpha1 = np.ones(len(elements)) # np.sum(alpha) == len(elements), flat prior
+                p1 = alpha1 / len(elements) # probablity, i.e., np.sum(p1) == 1
                 p = p1
-                
-                # # FLAT PRIORS
-                # alpha1 = np.ones(len(elements)) # np.sum(alpha) == len(elements), flat prior
-                # p1 = alpha1 / len(elements) # probablity, i.e., np.sum(p1) == 1
-                # p = p1
             
             # at every trial, we compute surprise based on the probability
-            model_P.append(p)           # probability (all elements)
+            model_P.append(p)             # probability (all elements) 
             model_p.append(p[vector[-1]]) # probability of current element
             # Surprise is defined by the negative log of the probability of the current trial given the previous trials.
             I = -np.log2(p)     # complexity of every event (each cue_target_pair is a potential event)
@@ -1195,7 +1156,7 @@ class higherLevel(object):
                 # The influence of the prior should be sampled by a distribution or
                 # set to a certain value based on Kidd et al. (2012, 2014)
                 p.append((np.sum(vector == k) + alpha1[k]) / (len(vector) + len(alpha1)))       
-            
+
             H = -np.sum(p * np.log2(p)) # entropy (note that np.log2(1/p) is equivalent to multiplying the whole sum by -1)
             model_H.append(H)   # entropy
             
@@ -1228,41 +1189,33 @@ class higherLevel(object):
         model_D = KL-divergence at current trial
         """
         
+        elements = np.arange(9)
+        
         fn_in = os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp))
-        priors = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects_priors.csv'.format('task-letter_color_visual_training')), float_precision='%.16f')
-        
         self.information_theory_code_stimuli(fn_in) # code stimuli based on predictions and based on targets
-        
-        df_in = pd.read_csv(fn_in, float_precision='%.16f')
+
+        df_in = pd.read_csv(fn_in, float_precision='high')
         df_in = df_in.loc[:, ~df_in.columns.str.contains('^Unnamed')]
         # sort by subjects then trial_counter in ascending order
         df_in.sort_values(by=['subject', 'trial_num'], ascending=True, inplace=True)
         
         df_out = pd.DataFrame()
-        df_prob_out = pd.DataFrame() # last probabilities all elements saved
-        
-        elements = np.unique(df_in['letter_color_pair'])
         
         # loop subjects
         for s,subj in enumerate(self.subjects):
             
             this_subj = int(''.join(filter(str.isdigit, subj))) # get number of subject only
             # get current subjects data only
-            this_priors = priors[str(this_subj)] # priors for current subject
             this_df = df_in[df_in['subject']==this_subj].copy()
             
-            # the input to the model is the trial sequence = the order of letter-color pair for each participant
-            [model_e, model_P, model_p, model_I, model_i, model_H, model_CH, model_D] = self.idt_model(this_df, 'letter_color_pair', elements, this_priors)
+            # the input to the model is the trial sequence = the order of cue_target/prediction_pair for each participant
+            [model_e, model_P, model_p, model_I, model_i, model_H, model_CH, model_D] = self.idt_model(this_df, 'touch_pair', elements)
             
-            # add to subject dataframe
             this_df['model_p'] = np.array(model_p)
             this_df['model_i'] = np.array(model_i)
             this_df['model_H'] = np.array(model_H)
             this_df['model_D'] = np.array(model_D)
             df_out = pd.concat([df_out, this_df])    # add current subject df to larger df
-            
-            df_prob_out['{}'.format(this_subj)] = np.array(model_P[-1])
-            print(subj)
         
         # save whole DF
         df_out.to_csv(fn_in, float_format='%.16f') # overwrite subjects dataframe
@@ -1285,7 +1238,7 @@ class higherLevel(object):
         ivs = ['model_i', 'model_H', 'model_D',]
         labels = ['i' , 'H', 'KL',]
 
-        DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='%.16f')
+        DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='high')
 
         #### DROP OMISSIONS HERE ####
         DF = DF[DF['drop_trial'] == 0] # drop outliers based on RT
@@ -1360,7 +1313,7 @@ class higherLevel(object):
         Drop omission trials (in subject loop).
         Output in dataframe folder.
         """
-        DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='%.16f')
+        DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='high')
         DF = DF.loc[:, ~DF.columns.str.contains('^Unnamed')] # remove all unnamed columns
 
         ivs = ['model_i', 'model_H', 'model_D']
@@ -1382,7 +1335,7 @@ class higherLevel(object):
                         # get current subject's data only
 
                         SBEHAV = DF[DF['subject']==this_subj].reset_index()
-                        SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory,subj,'beh','{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj,self.exp,time_locked)), float_precision='%.16f'))
+                        SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory,subj,'{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj,self.exp,time_locked)), float_precision='high'))
                         SPUPIL = SPUPIL.loc[:, ~SPUPIL.columns.str.contains('^Unnamed')] # remove all unnamed columns
 
                         # merge behavioral and evoked dataframes so we can group by conditions
@@ -1410,7 +1363,8 @@ class higherLevel(object):
                                 Y = Y[mask] # pupil 
                                 X = X[mask] # IV
                             
-                            r, pval = sp.stats.pearsonr(np.array(X), np.array(Y))
+                            # r, pval = sp.stats.pearsonr(np.array(X), np.array(Y))
+                            r, pval = sp.stats.spearmanr(np.array(X), np.array(Y))
 
                             save_timepoint_r.append(self.fisher_transform(r))
 
@@ -1435,6 +1389,7 @@ class higherLevel(object):
         tick_spacer = 0.1
         
         ivs = ['model_i', 'model_H', 'model_D']
+        labels = ['Information', 'Entropy', 'KL divergence']
     
         # xticklabels = ['mean response']
         colors = ['teal', 'orange', 'purple'] # black
@@ -1458,12 +1413,12 @@ class higherLevel(object):
         
         for i,iv in enumerate(ivs):
             # Compute means, sems across group
-            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, 'all_trials', iv)), float_precision='%.16f')
+            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, 'all_trials', iv)), float_precision='high')
             COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
 
             # plot time series
             TS = np.array(COND.T) # flip so subjects are rows
-            self.tsplot(ax, TS, color=colors[i], label=iv)
+            self.tsplot(ax, TS, color=colors[i], label=labels[i])
             try:
                 self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1+i, color=colors[i], ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)           
             except:
@@ -1473,7 +1428,7 @@ class higherLevel(object):
         ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
         
         # Shade all time windows of interest in grey, will be different for events
-        for twi in self.pupil_time_of_interest[t]:       
+        for twi in self.pupil_time_of_interest:
             tw_begin = int(event_onset + (twi[0]*self.sample_rate))
             tw_end = int(event_onset + (twi[1]*self.sample_rate))
             ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
@@ -1484,9 +1439,9 @@ class higherLevel(object):
         ax.set_ylim(ylim_feed)
         ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
         ax.set_xlabel('Time from feedback (s)')
-        ax.set_ylabel('r')
-        ax.set_title(time_locked)
-        ax.legend()
+        ax.set_ylabel('r (Spearman)')
+        # ax.set_title(time_locked)
+        ax.legend(loc='lower right')
         
         # whole figure format
         sns.despine(offset=10, trim=True)
@@ -1518,7 +1473,7 @@ class higherLevel(object):
             for i, cond in enumerate(['error', 'correct']):
             
                 # Compute means, sems across group
-                COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, cond, iv)), float_precision='%.16f')
+                COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, cond, iv)), float_precision='high')
                 COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
 
                 TS = np.array(COND.T)
@@ -1536,7 +1491,7 @@ class higherLevel(object):
             ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
         
             # Shade all time windows of interest in grey, will be different for events
-            for twi in self.pupil_time_of_interest[t]:       
+            for twi in self.pupil_time_of_interest:
                 tw_begin = int(event_onset + (twi[0]*self.sample_rate))
                 tw_end = int(event_onset + (twi[1]*self.sample_rate))
                 ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
@@ -1565,7 +1520,7 @@ class higherLevel(object):
         Save separate dataframes for the different combinations of factors in trial bin folder for plotting and jasp folders for statistical testing.
         self.freq_cond argument determines how the trials were split
         """     
-        DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='%.16f')
+        DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='high')
         DF = DF.loc[:, ~DF.columns.str.contains('^Unnamed')] # drop all unnamed columns
         DF.sort_values(by=['subject','trial_num'],inplace=True)
         DF.reset_index()
@@ -1640,7 +1595,7 @@ class higherLevel(object):
 
             ax = fig.add_subplot(3, 3, subplot_counter) # 1 subplot per bin windo
             
-            DFIN = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='%.16f')
+            DFIN = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='high')
             DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
                         
             subject_array = np.zeros((len(self.subjects), np.max(DFIN['trial_num'])+1))
@@ -1670,7 +1625,7 @@ class higherLevel(object):
             
             ax = fig.add_subplot(3, 3, subplot_counter) # 1 subplot per bin window
 
-            DFIN = pd.read_csv(os.path.join(self.averages_folder,'{}_{}_{}.csv'.format(self.exp,'frequency',pupil_dv)), float_precision='%.16f')
+            DFIN = pd.read_csv(os.path.join(self.averages_folder,'{}_{}_{}.csv'.format(self.exp,'frequency',pupil_dv)), float_precision='high')
             DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
             
             # Group average 
