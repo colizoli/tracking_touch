@@ -112,7 +112,7 @@ if subject_ID:
     \n\nFor these practice trials, the 2nd touch will ALWAYS be on the same finger as the 1st touch!\
     \n\nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key to indicate your prediction.\
     \n\nMaintain fixation on the '+' in the center of the screen for the duration of the experiment.\
-    \nBlink as you normally would, but do not move your left hand during the experiment.\
+    \nBlink as you normally would, but do NOT move your left hand during the experiment.\
     \n\n<Press any button to CONTINUE INSTRUCTIONS>"
     
     instr2_txt = "Below is a visual example of each trial of the experiment.\

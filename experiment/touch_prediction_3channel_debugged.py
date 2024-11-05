@@ -16,16 +16,18 @@ import os, time  # for paths and data
 from IPython import embed as shell # for Olympia debugging only, comment out if crashes
 import digitimer_functions
 
-# TO DO: add drift correction after break!
-
-debug_mode = False #20x6 trials when False, True=6 trials
-eye_mode = True
-touch_mode = True
+# mode
+debug_mode = False # fewer trials
+eye_mode = False
+touch_mode = False
 
 """
 PARAMETERS
 """
-hard_path = os.path.join("d:","users","Tamar", "tracking_touch-main", "experiment")
+# hard_path = os.path.join("d:","users","Tamar", "tracking_touch-main", "experiment")
+# os.chdir(hard_path)
+
+hard_path = os.path.join(os.getcwd())
 os.chdir(hard_path)
 
 # Screen-specific parameters lab B.00.80A
@@ -40,30 +42,33 @@ buttons = ['left', 'down', 'right'] # top, middle, bottom
 button_names = ['top', 'middle' , 'bottom']
 
 # Set trial conditions and randomize stimulus list
-REPS = 60    # times to repeat trial unit full experiment
+REPS_PER_BLOCK = 7 # times to repeat trial unit full experiment (3 fingers x 7 reps = 21 trials per block)
+BLOCKS = 9         # how many blocks (9 blocks x 21 trials per block. = 189 trials total)
 if debug_mode:
     reps      = 1 # debug mode reps
 else:
-    reps      = REPS
+    reps      = REPS_PER_BLOCK
 
-break_trials = [20,40,60,80,100,120,140,160]
+# break_trials = [20,40,60,80,100,120,140,160]
 
 # multiply intensities
 int_mult = 1.2
 
 # Timing in seconds
 t_baseline  = 1   # baseline pupil
-t_touch     = 1.5
-t_response  = 3
-t_feedback  = 1.5
-t_ITI       = [3.5,5.5]
+t_touch     = 1.5 # stimulus duration touch1
+t_response  = 3   # maximum response window
+t_delay     = 3.5 # after response
+t_feedback  = 1.5 # stimulus duration touch2
+t_ITI       = [3.5,5.5] # inter-trial interval
 
 # touch distributions
+# NOTE: solution: top-middle, middle-top, bottom-bottom
 touch1      = [1,2,3] # top, middle, bottom
 touch2      = [
-    [1,1,2,2,2,2,2,2,3,3], # top
-    [1,1,1,1,1,1,2,2,3,3], # middle
-    [1,1,2,2,3,3,3,3,3,3]  # bottom
+    [1,2,2,2,2,2,2,2,2,3], # middle
+    [1,1,1,1,1,1,1,1,2,3], # top
+    [1,2,3,3,3,3,3,3,3,3]  # bottom
            ]
 
 # Size  screen 1920 x 1080, units in pixels
@@ -102,7 +107,7 @@ if subject_ID:
     ## output file name with time stamp prevents any overwriting of data
     timestr = time.strftime("%Y%m%d-%H%M%S") 
     output_filename = os.path.join(logfile_dir,'sub-{}_task-touch_prediction_events_{}.csv'.format(subject_ID,timestr ))
-    cols = ['subject','trial_num','touch1','touch2','response','correct','RT','ITI','t1_intensity','t2_intensity']
+    cols = ['subject','block','trial_num','touch1','touch2','response','correct','RT','ITI','t1_intensity','t2_intensity','onset_trial','onset_touch1','onset_touch2']
     DF = pd.DataFrame(columns=cols)
         
     # Set-up window:
@@ -121,25 +126,32 @@ if subject_ID:
     
     # Set-up stimuli and timing
     instr1_txt = "Touch prediction\
-    \nYou will be touched on part of your finger twice in a row.\
+    \nYou will be touched on your finger(s) twice in a row.\
     \nYOUR TASK IS TO PREDICT WHERE THE 2ND TOUCH WILL BE.\
-    \nGive your prediction for the finger of the 2nd touch when you see the DIAMOND symbol appear.\
-    \n\nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key to indicate your prediction.\
-    \n\nMaintain fixation on the '+' in the center of the screen for the duration of the experiment.\
-    \nYou will have several breaks during which you can move your head/eyes.\
-    \nBlink as you normally would, but do not move your left hand during the experiment.\
+    \n\nThe probabilities of the 2nd touch do not change over the course of the experiment.\
+    \nFocus on being maximally correct in your responses.\
+    \nIn other words, try to correctly guess on which finger the 2nd touch will happen as much as possible.\
     \n\n<Press any button to CONTINUE INSTRUCTIONS>"
     
-    instr2_txt = "Now the actual experiment will begin!\
+    instr2_txt = "Touch prediction\
+    \nGive your prediction for the finger of the 2nd touch when you see the DIAMOND symbol appear.\
+    \n\nAfter the first touch, press the Index/ Middle/ Ring finger (Left/ Down /Right) key to indicate your prediction.\
+    \n\nMaintain fixation on the '+' in the center of the screen for the duration of the experiment.\
+    \nYou will have several breaks during which you can move your head/eyes.\
+    \nBlink as you normally would, but do NOT move your left hand during the experiment.\
+    \n\n<Press any button to CONTINUE INSTRUCTIONS>"
+    
+    instr3_txt = "Now the actual experiment will begin!\
     \nThere will be 9 blocks in total (~5 min each), each with several trials.\
     \nIn between the blocks, you can take a break to move your head.\
     \n\nWhen you are ready to continue with the next block,\
     \nplace your head back in the chin rest and fixate the dot at the center of the screen.\
-    \n\nAgain the keys are Index/Middle/Ring finger: Left/ Down /Right arrow keys.\
+    \n\nAgain the keys are Index /Middle /Ring finger: Left/ Down /Right arrow keys.\
     \n\n<Press any button to BEGIN the EXPERIMENT>"
     
     break_text = "Take a short break!\
-    \n\nAgain the keys are Index/Middle/Ring finger: Left/ Down /Right arrow keys.\
+    \n\nAgain the keys are Index/ Middle/ Ring finger: Left/ Down /Right arrow keys.\
+    \nRemember to blink as you normally would, but do NOT move your left hand during the experiment.\
     \n\nPush any button when you are ready to CONTINUE."
      
     stim_instr   = visual.TextStim(win, text=instr1_txt, color='black', pos=(0.0, 0.0), wrapWidth=ww)
@@ -149,13 +161,6 @@ if subject_ID:
     stim_touch      = visual.ImageStim(win, image=os.path.join('stimuli', 'kruis.png'), size=stim_size)
     stim_resp       = visual.ImageStim(win, image=os.path.join('stimuli', 'ruit.png'), size=stim_size)
     stim_ITI        = visual.ImageStim(win, image=os.path.join('stimuli', 'plus.png'), size=stim_size)
-    
-    trials = touch1*reps
-    np.random.shuffle(trials) # shuffle order of colors      
-    print(trials)
-    
-    # start clock
-    clock = core.Clock()
     
     ### CONFIG & CALIBRATION EYE-TRACKER ###
     if eye_mode:
@@ -179,146 +184,163 @@ if subject_ID:
     core.wait(0.25)
     event.waitKeys()
     
+    stim_instr.setText(instr3_txt)
+    stim_instr.draw()
+    win.flip()
+    core.wait(0.25)
+    event.waitKeys()
+    
     # Wait a few seconds before first trial to stabilize gaze
     stim_fix.draw()
     win.flip()
     core.wait(3) 
     
     #### TRIAL LOOP ### --> add the intervals here
+    onset_tria11 = np.nan
+    onset_touch1 = np.nan
+    onset_touch2 = np.nan
+    
+    # start clock
+    clock_rt = core.Clock()
+    clock_all = core.Clock()
+    
     trial_num = 0 # not enumerate doesn't work properly because trials has shuffled index
-    for t in trials:
+    
+    for block in np.arange(BLOCKS):
+        # shuffle trials within each block
+        trials = touch1*reps
+        np.random.shuffle(trials) 
+        print(trials)
         
-        print('########## Trial {} #########'.format(trial_num))
-                    
-        # Pupil baseline
-        stim_fix.draw() 
-        win.flip()
-        if eye_mode:
-            eye.send_message('trial {} baseline phase 1'.format(trial_num))
-        core.wait(t_baseline) 
+        for t in trials:
         
-        # Touch 1
-        t1_intensity = touch_intensities[t-1]
-        stim_touch.draw() 
-        win.flip()
-        if eye_mode:
-            eye.send_message('trial {} touch1 {} phase 2'.format(trial_num, t)) # is this indeed touch? -Tamar
-        # touch_1 = t
-        if touch_mode:
-            digitimer_functions.administer_touch(this_intensity=t1_intensity, channel=t) # channels are non-zero
-        core.wait(t_touch)
-        print('Touch1={}, Intensity={}'.format(t, t1_intensity))
-        
-        respond = [] # respond, top, middle or bottom ('1','2','3')
-        clock.reset() # for latency measurements
-        
-        #Wait for response
-        stim_resp.draw() 
-        win.flip() 
-   
-        while clock.getTime() < t_response:
-            stim_resp.draw()
-            win.flip()
-            if not respond:
-                respond = event.waitKeys(maxWait = t_response-clock.getTime(), keyList=buttons, timeStamped=clock)
-        
-        if respond:
-            response, latency = respond[0]
-        else:
-            response, latency = ('missing', np.nan)
-        if eye_mode:
-            eye.send_message('trial {} response {} phase 3'.format(trial_num, round(latency,2)))    
-        
-        print('Response={}, RT={}'.format(response, latency))
-        
-        #Touch 2 - Present feedback (second touch)
-        feedback = touch2[t-1][random.randint(0,9)]
-        t2_intensity = touch_intensities[feedback-1]
-        stim_touch.draw() 
-        win.flip()
-        if eye_mode:
-            eye.send_message('trial {} touch2 {} phase 4'.format(trial_num, feedback)) # is this indeed touch? -Tamar
-        if touch_mode:
-            digitimer_functions.administer_touch(this_intensity=t2_intensity, channel=feedback) # channels are non-zero
-        core.wait(t_touch)   
-        print('Touch2={}, Intensity={}'.format(feedback, t2_intensity))
-             
-        # ITI
-        stim_ITI.draw() 
-        win.flip()
-        # randomly chooses number between [] and rounds to 2 decimals
-        ITI = np.round(random.uniform(t_ITI[0], t_ITI[1]), 2) # should this be between 0-3?
-        if eye_mode:
-            eye.send_message('trial {} ITI {} phase 5'.format(trial_num, ITI))    
-        core.wait(ITI)
-        print('ITI={}'.format(ITI))
-        
-        # For quitting early
-        keys = event.getKeys()
-        if keys:
-            # q quits the experiment
-            if (keys[0] == 'q') or (keys[0] == 'escape'):
-                if eye_mode:
-                    eye.stop_skip_save()
-                core.quit()
-        
-        # correct response?
-        if response == 'missing':
-            correct = 0
-        else:
-            correct = feedback == buttons.index(response)+1 # index of buttons codes + 1 for finger 1,2,3
-        
-        # output data frame on each trial --> how should this be changed? - Tamar
-        # ['subject','trial_num','touch1','touch2','response','correct','RT','ITI','t1_intensity','t2_intensity']
-        DF.loc[trial_num] = [
-                int(subject_ID),    # subject
-                int(trial_num),     # trial number
-                int(t),             # touch1
-                int(feedback),      # touch2
-                response,           # response
-                int(correct),       # correct
-                round(latency, 8),  # RT
-                ITI,                 # ITI
-                round(t1_intensity, 8),  # touch 1 intensity
-                round(t2_intensity, 8),  # touch 2 intensity
-            ]
-        DF.to_csv(output_filename)
-        
-        trial_num += 1 
-        
-        # break!!
-        if trial_num in break_trials:
+            print('########## Trial {} #########'.format(trial_num))
             
+            # Pupil baseline
+            onset_trial = clock_all.getTime()
+            stim_fix.draw() 
+            win.flip()
+            if eye_mode:
+                eye.send_message('trial {} baseline phase 1'.format(trial_num))
+            core.wait(t_baseline) 
+        
+            # Touch 1
+            t1_intensity = touch_intensities[t-1]
+            stim_touch.draw() 
+            win.flip()
+            if eye_mode:
+                eye.send_message('trial {} touch1 {} phase 2'.format(trial_num, t)) # is this indeed touch? -Tamar
+            # touch_1 = t
+            onset_touch1 = clock_all.getTime()
+            if touch_mode:
+                digitimer_functions.administer_touch(this_intensity=t1_intensity, channel=t) # channels are non-zero
+            core.wait(t_touch)
+            print('Touch1={}, Intensity={}, time={}'.format(t, t1_intensity, onset_touch1))
+        
+            respond = [] # respond, top, middle or bottom ('1','2','3')
+            clock_rt.reset() # for latency measurements
+        
+            #Wait for response
+            stim_resp.draw() 
+            win.flip() 
+   
+            respond = event.waitKeys(maxWait = t_response, keyList=buttons, timeStamped=clock_rt)
+        
+            #Delay after response (only if responded)
+            if respond:
+                response, latency = respond[0]
+                core.wait(t_delay) # delay locked to response   
+            else:
+                response, latency = ('missing', np.nan)
+            if eye_mode:
+                eye.send_message('trial {} response {} phase 3'.format(trial_num, round(latency,2)))    
+            print('Response={}, RT={}'.format(response, latency))
+        
+            #Touch 2 - Present feedback (second touch)
+            feedback = touch2[t-1][random.randint(0,9)]
+            t2_intensity = touch_intensities[feedback-1]
+            stim_touch.draw() 
+            win.flip()
+            if eye_mode:
+                eye.send_message('trial {} touch2 {} phase 4'.format(trial_num, feedback)) # is this indeed touch? -Tamar
+            onset_touch2 = clock_all.getTime()
+            if touch_mode:
+                digitimer_functions.administer_touch(this_intensity=t2_intensity, channel=feedback) # channels are non-zero
+            core.wait(t_touch)   
+            print('Touch2={}, Intensity={}, time={}'.format(feedback, t2_intensity, onset_touch2))
+             
+            # ITI
+            stim_ITI.draw() 
+            win.flip()
+            # randomly chooses number between [] and rounds to 2 decimals
+            ITI = np.round(random.uniform(t_ITI[0], t_ITI[1]), 2) # should this be between 0-3?
+            if eye_mode:
+                eye.send_message('trial {} ITI {} phase 5'.format(trial_num, ITI))    
+            core.wait(ITI)
+            print('ITI={}'.format(ITI))
+        
+            # For quitting early
+            keys = event.getKeys()
+            if keys:
+                # q quits the experiment
+                if (keys[0] == 'q') or (keys[0] == 'escape'):
+                    if eye_mode:
+                        eye.stop_skip_save()
+                    core.quit()
+        
+            # correct response?
+            if response == 'missing':
+                correct = 0
+            else:
+                correct = feedback == buttons.index(response)+1 # index of buttons codes + 1 for finger 1,2,3
+        
+            # output data frame on each trial --> how should this be changed? - Tamar
+            # ['subject','block','trial_num','touch1','touch2','response','correct','RT','ITI','t1_intensity','t2_intensity','onset_trial','onset_touch1','onset_touch2']
+            DF.loc[trial_num] = [
+                    int(subject_ID),    # subject
+                    int(block),         # block
+                    int(trial_num),     # trial number
+                    int(t),             # touch1
+                    int(feedback),      # touch2
+                    response,           # response
+                    int(correct),       # correct
+                    round(latency, 8),  # RT
+                    ITI,                # ITI
+                    round(t1_intensity, 8),  # touch 1 intensity
+                    round(t2_intensity, 8),  # touch 2 intensity
+                    round(onset_trial, 4),
+                    round(onset_touch1, 4),
+                    round(onset_touch2, 4)
+                ]
+            DF.to_csv(output_filename)
+        
+            trial_num += 1 
+                    
+        # break!!
+        if block+1 == BLOCKS: # end experiment
+            if eye_mode:
+                eye.stop_recording(timestr, task)
+            stim_instr.setText('Well done! Data transfering.....')
+            stim_instr.draw()
+            win.flip()
+        else: # break
             if eye_mode:
                 eye.pause_stop_recording() # pause recording
-            
-            # Break instructions forced 
             stim_instr.setText('Take a short break!')
             stim_instr.draw()
             win.flip()
             core.wait(0.5)
-            
             # Break instructions continue
             stim_instr.setText(break_text)
             stim_instr.draw()
             win.flip()
             event.waitKeys()
-            
+            # Drift correction, when subject moves their head during breaks
             if eye_mode:
-                # Drift correction, when subject moves their head during breaks
                 eye.run_drift_correction(win, scnWidth, scnHeight)
                
-    # End screen for participants
-    stim_instr.setText('Well done! Data transfering.....')
-    stim_instr.draw()
-    win.flip()
-        
-    # Close-up   
-    if eye_mode:
-        eye.stop_recording(timestr, task)
-    
+    # close up
     core.wait(3)
-    
     core.quit()
 
 
