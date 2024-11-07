@@ -16,10 +16,8 @@ import os, time  # for paths and data
 from IPython import embed as shell # for Olympia debugging only, comment out if crashes
 import digitimer_functions
 
-# TO DO: add drift correction after break!
-
 debug_mode = False #20x6 trials when False, True=6 trials
-touch_mode = True
+touch_mode = False
 
 """
 PARAMETERS
@@ -50,10 +48,11 @@ int_mult = 1.2
 
 # Timing in seconds
 t_baseline  = 1   # baseline pupil
-t_touch     = 1.5
-t_response  = 3
-t_feedback  = 1.5
-t_ITI       = [3.5,5.5]
+t_touch     = 1.5 # stimulus duration touch1
+t_response  = 3   # maximum response window
+t_delay     = 3.5 # after response
+t_feedback  = 1.5 # stimulus duration touch2
+t_ITI       = [3.5,5.5] # inter-trial interval
 
 # touch distributions
 touch1      = [1,2,3] # top, middle, bottom
@@ -67,9 +66,10 @@ GET INPUT
 """
 # Get subject number
 g = gui.Dlg()
+g.addText('Subject Number:')
 g.addField('Subject Number:')
 g.show()
-subject_ID = int(g.data[0])
+subject_ID = list(g.data.values())[0]
 
 if subject_ID:
 
@@ -107,17 +107,17 @@ if subject_ID:
     
     # Set-up stimuli and timing
     instr1_txt = "PRACTICE Touch prediction\
-    \nYou will be touched on part of your finger twice in a row.\
-    \nYOUR TASK IS TO PREDICT WHERE THE 2ND TOUCH WILL BE.\
+    \nYou will be touched on your finger(s) twice in a row.\
+    \nYOUR TASK IS TO PREDICT ON WHICH FINGER THE 2ND TOUCH WILL BE.\
     \n\nFor these practice trials, the 2nd touch will ALWAYS be on the same finger as the 1st touch!\
-    \n\nAfter the first touch, press the Index/Middle/Ring finger (Left/ Down /Right) key to indicate your prediction.\
+    \n\nAfter the first touch, press the Index/ Middle/ Ring finger (Left/ Down /Right) key to indicate your prediction.\
     \n\nMaintain fixation on the '+' in the center of the screen for the duration of the experiment.\
     \nBlink as you normally would, but do NOT move your left hand during the experiment.\
     \n\n<Press any button to CONTINUE INSTRUCTIONS>"
     
     instr2_txt = "Below is a visual example of each trial of the experiment.\
     \nGive your prediction for the finger of the 2nd touch when you see the DIAMOND symbol appear.\
-    \n\nAfter the first touch, press the Index/Middle/R\ing finger (Left/ Down /Right) key as fast as possible to indicate your prediction.\
+    \n\nAfter the first touch, press the Index/ Middle/ Ring finger (Left/ Down /Right) key as fast as possible to indicate your prediction.\
     \n\n<Press any button to BEGIN the PRACTICE TRIALS>"
     
     stim_instr1   = visual.TextStim(win, text=instr1_txt, color='black', pos=(0.0, 0.0), wrapWidth=ww)
@@ -158,6 +158,7 @@ if subject_ID:
     core.wait(3) 
     
     #### TRIAL LOOP ### --> add the intervals here
+    clock_rt = core.Clock()
     trial_num = 0 # not enumerate doesn't work properly because trials has shuffled index
     for t in trials:
         
@@ -179,23 +180,20 @@ if subject_ID:
         print('Touch1={}, Intensity={}'.format(t, t1_intensity))
         
         respond = [] # respond, top, middle or bottom ('1','2','3')
-        clock.reset() # for latency measurements
+        clock_rt.reset() # for latency measurements
         
         #Wait for response
         stim_resp.draw() 
         win.flip() 
-   
-        while clock.getTime() < t_response:
-            stim_resp.draw()
-            win.flip()
-            if not respond:
-                respond = event.waitKeys(maxWait = t_response-clock.getTime() ,keyList=buttons, timeStamped=clock)
-        
+
+        respond = event.waitKeys(maxWait = t_response, keyList=buttons, timeStamped=clock_rt)
+    
+        #Delay after response (only if responded)
         if respond:
             response, latency = respond[0]
+            core.wait(t_delay) # delay locked to response   
         else:
-            response, latency = ('missing', np.nan)
-        
+            response, latency = ('missing', np.nan) 
         print('Response={}, RT={}'.format(response, latency))
         
         #Touch 2 - Present feedback (second touch) FOR PRACTICE ALWAYS THE SAME AS FIRST TOUCH

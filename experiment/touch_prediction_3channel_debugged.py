@@ -18,17 +18,17 @@ import digitimer_functions
 
 # mode
 debug_mode = False # fewer trials
-eye_mode = False
-touch_mode = False
+eye_mode = True
+touch_mode = True
 
 """
 PARAMETERS
 """
-# hard_path = os.path.join("d:","users","Tamar", "tracking_touch-main", "experiment")
-# os.chdir(hard_path)
-
-hard_path = os.path.join(os.getcwd())
+hard_path = os.path.join("d:","users","Tamar", "tracking_touch-main", "experiment")
 os.chdir(hard_path)
+
+# hard_path = os.path.join(os.getcwd())
+# os.chdir(hard_path)
 
 # Screen-specific parameters lab B.00.80A
 scnWidth, scnHeight = (1920, 1080)
@@ -48,8 +48,6 @@ if debug_mode:
     reps      = 1 # debug mode reps
 else:
     reps      = REPS_PER_BLOCK
-
-# break_trials = [20,40,60,80,100,120,140,160]
 
 # multiply intensities
 int_mult = 1.2
@@ -80,9 +78,10 @@ GET INPUT
 """
 # Get subject number
 g = gui.Dlg()
+g.addText('Subject Number:')
 g.addField('Subject Number:')
 g.show()
-subject_ID = int(g.data[0])
+subject_ID = list(g.data.values())[0]
 
 if subject_ID:
 
@@ -127,7 +126,7 @@ if subject_ID:
     # Set-up stimuli and timing
     instr1_txt = "Touch prediction\
     \nYou will be touched on your finger(s) twice in a row.\
-    \nYOUR TASK IS TO PREDICT WHERE THE 2ND TOUCH WILL BE.\
+    \nYOUR TASK IS TO PREDICT ON WHICH FINGER THE 2ND TOUCH WILL BE.\
     \n\nThe probabilities of the 2nd touch do not change over the course of the experiment.\
     \nFocus on being maximally correct in your responses.\
     \nIn other words, try to correctly guess on which finger the 2nd touch will happen as much as possible.\

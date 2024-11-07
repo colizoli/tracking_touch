@@ -29,7 +29,7 @@ nothing_button = 'f'
 
 # Screen-specific parameters lab B.00.80A
 scnWidth, scnHeight = (1920, 1080)
-# scnWidth, scnHeight = (1500, 600) # for debugging
+#scnWidth, scnHeight = (1500, 600) # for debugging
 screen_width        = 53.5 # centimeters
 screen_dist         = 58.0
 grey = [128,128,128]
@@ -101,9 +101,10 @@ def initialize_subject():
     
     # Get subject number
     g = gui.Dlg()
+    g.addText('Subject Number')
     g.addField('Subject Number:')
     g.show()
-    subject_ID = g.data[0]
+    subject_ID = list(g.data.values())[0]
 
     logfile_dir = os.path.join('sourcedata', 'sub-{}'.format(subject_ID))
     if not os.path.isdir(logfile_dir):
