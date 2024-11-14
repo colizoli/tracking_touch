@@ -245,11 +245,14 @@ if subject_ID:
             #Delay after response (only if responded)
             if respond:
                 response, latency = respond[0]
+                if eye_mode:
+                    eye.send_message('trial {} response {} phase 3'.format(trial_num, round(latency,2)))    
                 core.wait(t_delay) # delay locked to response   
             else:
                 response, latency = ('missing', np.nan)
-            if eye_mode:
-                eye.send_message('trial {} response {} phase 3'.format(trial_num, round(latency,2)))    
+                if eye_mode:
+                    eye.send_message('trial {} response {} phase 3'.format(trial_num, round(latency,2)))   
+                    
             print('Response={}, RT={}'.format(response, latency))
         
             #Touch 2 - Present feedback (second touch)
