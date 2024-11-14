@@ -159,7 +159,7 @@ if subject_ID:
     ### CONFIG & CALIBRATION EYE-TRACKER ###
     if eye_mode:
         import funcs_pylink3 as eye
-        task = 'tracking_touch_prediction'
+        task = 'touch_prediction'
         eye.config(subject_ID,task)
         eye.run_calibration(win, scnWidth, scnHeight)
         eye.start_recording()
