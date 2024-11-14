@@ -17,7 +17,7 @@ from IPython import embed as shell # for Olympia debugging only, comment out if 
 import digitimer_functions
 
 debug_mode = False #20x6 trials when False, True=6 trials
-touch_mode = False
+touch_mode = True
 
 """
 PARAMETERS

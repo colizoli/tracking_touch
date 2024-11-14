@@ -147,11 +147,6 @@ if subject_ID:
     \nplace your head back in the chin rest and fixate the dot at the center of the screen.\
     \n\nAgain the keys are Index /Middle /Ring finger: Left/ Down /Right arrow keys.\
     \n\n<Press any button to BEGIN the EXPERIMENT>"
-    
-    break_text = "Take a short break!\
-    \n\nAgain the keys are Index/ Middle/ Ring finger: Left/ Down /Right arrow keys.\
-    \nRemember to blink as you normally would, but do NOT move your left hand during the experiment.\
-    \n\nPush any button when you are ready to CONTINUE."
      
     stim_instr   = visual.TextStim(win, text=instr1_txt, color='black', pos=(0.0, 0.0), wrapWidth=ww)
     
@@ -189,12 +184,6 @@ if subject_ID:
     core.wait(0.25)
     event.waitKeys()
     
-    # Wait a few seconds before first trial to stabilize gaze
-    stim_fix.draw()
-    win.flip()
-    core.wait(3) 
-    
-    #### TRIAL LOOP ### --> add the intervals here
     onset_tria11 = np.nan
     onset_touch1 = np.nan
     onset_touch2 = np.nan
@@ -203,14 +192,22 @@ if subject_ID:
     clock_rt = core.Clock()
     clock_all = core.Clock()
     
-    trial_num = 0 # not enumerate doesn't work properly because trials has shuffled index
+    trial_num = 0 # note enumerate doesn't work properly because trials has shuffled index
     
+    #### BLOCK LOOP ###
     for block in np.arange(BLOCKS):
         # shuffle trials within each block
         trials = touch1*reps
         np.random.shuffle(trials) 
         print(trials)
+
+        # Wait a few seconds before first trial to stabilize gaze
+        stim_fix.draw()
+        win.flip()
+        core.wait(3) 
         
+        #### TRIAL LOOP ### --> add the intervals here
+
         for t in trials:
         
             print('########## Trial {} #########'.format(trial_num))
@@ -322,7 +319,13 @@ if subject_ID:
             stim_instr.setText('Well done! Data transfering.....')
             stim_instr.draw()
             win.flip()
-        else: # break
+        else: # break     
+            break_text = "Take a short break!\
+            \n\n You have completed {} out of {} blocks. \
+            \n\nAgain the keys are Index/ Middle/ Ring finger: Left/ Down /Right arrow keys.\
+            \nRemember to blink as you normally would, but do NOT move your left hand during the experiment.\
+            \n\nPush any button when you are ready to CONTINUE.".format(block+1, BLOCKS)
+
             if eye_mode:
                 eye.pause_stop_recording() # pause recording
             stim_instr.setText('Take a short break!')
