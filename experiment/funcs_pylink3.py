@@ -126,7 +126,7 @@ def stop_recording(timestr,task):
     pylink.pumpDelay(50)
     # rename file upon transfer
     original_name = os.path.splitext(dataFileName)
-    new_name = 'sub-'+ original_name[0] +'_task-' + task + '_eye_' + timestr + original_name[1] # sub-xxx_task-decision_eye_timestring.EDF 
+    new_name = 'sub-'+ original_name[0] +'_task-' + task + '_recording-eyetracking_physio_' + timestr + original_name[1] # sub-xxx_task-decision_eye_timestring.EDF 
     tk.receiveDataFile(dataFileName, os.path.join(dataFolder, new_name))
     print('EDF file successfully transferred {}'.format(new_name))
     #close the link to the tracker, graphics
