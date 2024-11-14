@@ -406,7 +406,7 @@ class higherLevel(object):
         # loop through subjects, get behavioral log files
         for s,subj in enumerate(self.subjects):
             
-            this_data = pd.read_csv(os.path.join(self.project_directory, subj, '{}_{}_beh.csv'.format(subj,self.exp)), float_precision='high')
+            this_data = pd.read_csv(os.path.join(self.project_directory, subj, '{}_{}_events.csv'.format(subj,self.exp)), float_precision='high')
             this_data = this_data.loc[:, ~this_data.columns.str.contains('^Unnamed')] # remove all unnamed columns
             
             for t,time_locked in enumerate(self.time_locked):
@@ -774,7 +774,7 @@ class higherLevel(object):
         i=0
         TS = np.array(COND.iloc[:,-kernel:]) # index from back to avoid extra unnamed column pandas
         self.tsplot(ax, TS, color='k', label=xticklabels[i])
-        self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+        # self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
     
         # set figure parameters
         ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
@@ -793,11 +793,12 @@ class higherLevel(object):
         twb_end = int(baseline_onset + (twb[1]*self.sample_rate))
         ax.axvspan(twb_begin,twb_end, facecolor='k', alpha=0.1)
 
-        xticks = [event_onset, ((mid_point-event_onset)/2)+event_onset, mid_point, ((end_sample-mid_point)/2)+mid_point, end_sample]
+        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
         ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]*.25, self.pupil_step_lim[t][1]*.5, self.pupil_step_lim[t][1]*.75, self.pupil_step_lim[t][1]])
+        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
         # ax.set_ylim(ylim_feed)
-        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
         ax.set_xlabel('Time from feedback (s)')
         ax.set_ylabel('Pupil response\n(% signal change)')
         ax.set_title(time_locked)
@@ -849,7 +850,7 @@ class higherLevel(object):
         # stats        
         ### COMPUTE INTERACTION TERM AND TEST AGAINST 0!
         pe_difference = save_conds[0]-save_conds[1]
-        self.cluster_sig_bar_1samp(array=pe_difference, x=pd.Series(range(pe_difference.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+        # self.cluster_sig_bar_1samp(array=pe_difference, x=pd.Series(range(pe_difference.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
 
         # set figure parameters
         ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
@@ -861,11 +862,12 @@ class higherLevel(object):
             tw_end = int(event_onset + (twi[1]*self.sample_rate))
             ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
 
-        xticks = [event_onset, ((mid_point-event_onset)/2)+event_onset, mid_point, ((end_sample-mid_point)/2)+mid_point, end_sample]
+        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
         ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]*.25, self.pupil_step_lim[t][1]*.5, self.pupil_step_lim[t][1]*.75, self.pupil_step_lim[t][1]])
+        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
         # ax.set_ylim(ylim_feed)
-        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
         ax.set_xlabel('Time from feedback (s)')
         ax.set_ylabel('Pupil response\n(% signal change)')
         ax.set_title(time_locked)
@@ -921,7 +923,7 @@ class higherLevel(object):
         #     interaction_pvals[timepoint] = np.array(res.anova_table)[-1][-1] # last row, last element
             
         # stats        
-        self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
+        # self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
     
         # set figure parameters
         ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
@@ -933,11 +935,12 @@ class higherLevel(object):
             tw_end = int(event_onset + (twi[1]*self.sample_rate))
             ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
 
-        xticks = [event_onset, ((mid_point-event_onset)/2)+event_onset, mid_point, ((end_sample-mid_point)/2)+mid_point, end_sample]
+        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
         ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]*.25, self.pupil_step_lim[t][1]*.5, self.pupil_step_lim[t][1]*.75, self.pupil_step_lim[t][1]])
+        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
         # ax.set_ylim(ylim_feed)
-        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
         ax.set_xlabel('Time from feedback (s)')
         ax.set_ylabel('Pupil response\n(% signal change)')
         ax.set_title(time_locked)
@@ -1010,7 +1013,7 @@ class higherLevel(object):
         #     interaction_pvals[timepoint] = np.array(res.anova_table)[-1][-1] # last row, last element
             
         # stats        
-        self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
+        # self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
 
         # set figure parameters
         ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
@@ -1022,11 +1025,12 @@ class higherLevel(object):
             tw_end = int(event_onset + (twi[1]*self.sample_rate))
             ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
             
-        xticks = [event_onset, ((mid_point-event_onset)/2)+event_onset, mid_point, ((end_sample-mid_point)/2)+mid_point, end_sample]
+        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
         ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]*.25, self.pupil_step_lim[t][1]*.5, self.pupil_step_lim[t][1]*.75, self.pupil_step_lim[t][1]])
+        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
         # ax.set_ylim(ylim_feed)
-        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
         ax.set_xlabel('Time from feedback (s)')
         ax.set_ylabel('Pupil response\n(% signal change)')
         ax.set_title(time_locked)

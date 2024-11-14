@@ -14,6 +14,10 @@ Notes
 ================================================
 """
 
+# TO DO:
+# covert_edfs() gets error cannot open file... but works in GUI converter.
+
+
 ############################################################################
 # PUPIL ANALYSES
 ############################################################################
@@ -31,8 +35,8 @@ from IPython import embed as shell # for debugging
 # Levels (toggle True/False)
 # ----------------------- 
 pre_process     = False  # pupil preprocessing is done on entire time series during the 2AFC decision task
-trial_process   = False  # cut out events for each trial and calculate trial-wise baselines, baseline correct evoked responses (2AFC decision)
-higher_level    = True   # all subjects' dataframe, pupil and behavior higher level analyses & figures (3AFC decision)
+trial_process   = False # cut out events for each trial and calculate trial-wise baselines, baseline correct evoked responses (2AFC decision)
+higher_level    = True # all subjects' dataframe, pupil and behavior higher level analyses & figures (3AFC decision)
  
 # -----------------------
 # Paths
@@ -59,17 +63,18 @@ subjects = ['sub-{}'.format(s) for s in ppns['subject']]
 # Event-locked pupil parameters (shared)
 # -----------------------
 msgs                    = ['start recording', 'stop recording', 'phase 1', 'phase 2', 'phase 3', 'phase 4',]; # this will change for each task (keep phase 1 for locking to breaks)
-phases                  = ['phase 2', 'phase 3', 'phase 4'] # of interest for analysis
-time_locked             = ['stim_locked', 'resp_locked', 'feed_locked'] # events to consider (note: these have to match phases variable above)
+phases                  = ['phase 1', 'phase 2', 'phase 3', 'phase 4'] # of interest for analysis
+time_locked             = ['trial_locked', 'stim_locked', 'resp_locked', 'feed_locked'] # events to consider (note: these have to match phases variable above)
 baseline_window         = 0.5 # seconds before event of interest
-pupil_step_lim          = [[-baseline_window, 3.0], [-baseline_window, 3.0], [-baseline_window, 3.0]] # size of pupil trial kernels in seconds with respect to first event, first element should max = 0!
+pupil_step_lim          = [[-baseline_window, 12.0], [-baseline_window, 3.5], [-baseline_window, 3.5], [-baseline_window, 3.5]] # size of pupil trial kernels in seconds with respect to first event, first element should max = 0!
 sample_rate             = 1000 # Hz
-break_trials            = [20, 40]  # which trial comes AFTER each break
+break_trials            = [21,42,63,84,105,126,147,168]  # which trial comes AFTER each break
 
 # -----------------------
 # 2AFC Decision Task, Pupil preprocessing, full time series
 # -----------------------
 if pre_process:
+    
     # preprocessing-specific parameters
     tolkens = ['ESACC', 'EBLINK' ]      # check saccades and blinks based on EyeLink
     tw_blinks = 0.15                    # seconds before and after blink periods for interpolation
@@ -95,8 +100,9 @@ if pre_process:
             threshold           = threshold,
             )
         # pupilPreprocess.convert_edfs()              # converts EDF to asc, msg and gaze files (run locally)
+        # pupilPreprocess.copy_sourcedata_derivatives(source_dir=source_dir) # copy source data to derivatives folder
         # pupilPreprocess.extract_pupil()             # read trials, and saves time locked pupil series as NPY array in processed folder
-        pupilPreprocess.preprocess_pupil()          # blink interpolation, filtering, remove blinks/saccades, split blocks, percent signal change, plots output
+        # pupilPreprocess.preprocess_pupil()          # blink interpolation, filtering, remove blinks/saccades, split blocks, percent signal change, plots output
 
 # -----------------------
 # 2AFC Decision Task, Pupil trials & mean response per event type
@@ -115,8 +121,9 @@ if trial_process:
             pupil_step_lim      = pupil_step_lim, 
             baseline_window     = baseline_window
             )
-        trialLevel.event_related_subjects(pupil_dv='pupil_psc')  # psc: percent signal change, per event of interest, 1 output for all trials+subjects
-        trialLevel.event_related_baseline_correction()           # per event of interest, baseline corrrects evoked responses
+        # trialLevel.event_related_subjects(pupil_dv='pupil_psc')  # psc: percent signal change, per event of interest, 1 output for all trials+subjects
+        # trialLevel.save_baselines()  # save baseline pupil dilation before first touch (stim_locked) and second touch (feed_locked)
+        # trialLevel.event_related_baseline_correction()           # per event of interest, baseline corrrects evoked responses
 
 # -----------------------
 # 2AFC Decision Task, MEAN responses and group level statistics 
@@ -127,24 +134,31 @@ if higher_level:
         experiment_name         = experiment_name,
         project_directory       = data_dir, 
         sample_rate             = sample_rate,
-        time_locked             = time_locked,
-        pupil_step_lim          = pupil_step_lim,                
+        time_locked             = ['feed_locked'],
+        pupil_step_lim          = [pupil_step_lim[3]],                
         baseline_window         = baseline_window,              
-        pupil_time_of_interest  = [[0.75,1.25], [2.5,3.0]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
+        pupil_time_of_interest  = [[0.75,1.25], [3.0,3.5]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
         )
-    # higherLevel.higherlevel_get_phasics()       # computes phasic pupil for each subject (adds to log files)
     # higherLevel.create_subjects_dataframe()       # add baselines, concantenates all subjects, flags missed trials, saves higher level data frame
     ''' Note: the functions after this are using: task-tracking_touch.csv
     '''
-    # higherLevel.average_conditions()           # group level data frames for all main effects + interaction
-    # higherLevel.plot_phasic_pupil_pe()         # plots the interaction between the frequency and accuracy
-    # higherLevel.plot_behavior()                # simple bar plots of accuracy and RT per mapping condition
-    ## higherLevel.individual_differences()       # individual differences correlation between behavior and pupil
     
     ''' Evoked pupil response
     '''
     # higherLevel.dataframe_evoked_pupil_higher()  # per event of interest, outputs one dataframe or np.array? for all trials for all subject on pupil time series
     higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
+    
+    
+    # higherLevel.average_conditions()           # group level data frames for all main effects + interaction
+    # higherLevel.plot_phasic_pupil_pe()         # plots the interaction between the frequency and accuracy
+    # higherLevel.plot_behavior()                # simple bar plots of accuracy and RT per mapping condition
+    ## higherLevel.individual_differences()       # individual differences correlation between behavior and pupil
+    
+
+    
+
+    # higherLevel.higherlevel_get_phasics()       # computes phasic pupil for each subject (adds to log files)
+    # higherLevel.create_subjects_dataframe()       # add baselines, concantenates all subjects, flags missed trials, saves higher level data frame
     
     ''' Ideal learner model
     '''
