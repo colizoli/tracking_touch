@@ -8,14 +8,12 @@ Preprocessing pupil dilation
 Python code O.Colizoli 2024 (olympia.colizoli@donders.ru.nl)
 Python 3.9
 
-Notes
------
->> conda install matplotlib # fixed the matplotlib crashing error in 3.6
+Notes:
+Need to have the EYELINK software installed on the terminal
 ================================================
 """
 
 # TO DO:
-# covert_edfs() gets error cannot open file... but works in GUI converter.
 
 
 ############################################################################
@@ -29,7 +27,6 @@ import preprocessing_functions_tracking_touch as pupil_preprocessing
 import higher_level_functions_tracking_touch as higher
 # conda install matplotlib # fixed the matplotlib crashing error in 3.6
 from IPython import embed as shell # for debugging
-# Need to have the EYELINK software installed on the terminal
 
 # -----------------------
 # Levels (toggle True/False)
@@ -47,18 +44,31 @@ source_dir      = os.path.join(home_dir, 'sourcedata')
 data_dir        = os.path.join(home_dir, 'derivatives')
 experiment_name = 'task-touch_prediction' # 3AFC Decision Task
 
-# copy 'sourcedata' to derivatives if it doesn't exist:
-if not os.path.isdir(data_dir):
-    shutil.copytree(source_dir, data_dir) 
-else:
-    print('Derivatives directory exists. Continuing...')
-
 # -----------------------
 # Participants
 # -----------------------
 ppns     = pd.read_csv(os.path.join(home_dir, 'analysis', 'participants_tracking_touch.csv'))
 subjects = ['sub-{}'.format(s) for s in ppns['subject']]
-    
+
+# -----------------------
+# Copy 'sourcedata' directory to 'derivatives' directory 
+# -----------------------
+# copy 'sourcedata' to 'derivatives' if it doesn't exist:
+if not os.path.isdir(data_dir):
+    shutil.copytree(source_dir, data_dir) 
+else:
+    print('Derivatives directory exists. Continuing...')
+
+# copy 'sourcedata/sub-xxx' to 'derivatives/sub-xxx' if it doesn't exist:    
+for s,subj in enumerate(subjects):
+    this_source_dir = os.path.join(source_dir, subj)
+    this_data_dir = os.path.join(data_dir, subj)
+    if not os.path.isdir(this_data_dir):
+        shutil.copytree(this_source_dir, this_data_dir) 
+    else:
+        print('{} derivatives folder already exists. Delete to overwrite.'.format(subj))
+# Everything after here should run only on the 'derivatives' directory.
+
 # -----------------------
 # Event-locked pupil parameters (shared)
 # -----------------------
@@ -99,10 +109,9 @@ if pre_process:
             mpd                 = mpd,
             threshold           = threshold,
             )
-        # pupilPreprocess.convert_edfs()              # converts EDF to asc, msg and gaze files (run locally)
-        # pupilPreprocess.copy_sourcedata_derivatives(source_dir=source_dir) # copy source data to derivatives folder
-        # pupilPreprocess.extract_pupil()             # read trials, and saves time locked pupil series as NPY array in processed folder
-        # pupilPreprocess.preprocess_pupil()          # blink interpolation, filtering, remove blinks/saccades, split blocks, percent signal change, plots output
+        pupilPreprocess.convert_edfs()              # converts EDF to asc, msg and gaze files (run locally)
+        pupilPreprocess.extract_pupil()             # read trials, and saves time locked pupil series as NPY array in processed folder
+        pupilPreprocess.preprocess_pupil()          # blink interpolation, filtering, remove blinks/saccades, split blocks, percent signal change, plots output
 
 # -----------------------
 # 2AFC Decision Task, Pupil trials & mean response per event type
@@ -121,9 +130,9 @@ if trial_process:
             pupil_step_lim      = pupil_step_lim, 
             baseline_window     = baseline_window
             )
-        # trialLevel.event_related_subjects(pupil_dv='pupil_psc')  # psc: percent signal change, per event of interest, 1 output for all trials+subjects
-        # trialLevel.save_baselines()  # save baseline pupil dilation before first touch (stim_locked) and second touch (feed_locked)
-        # trialLevel.event_related_baseline_correction()           # per event of interest, baseline corrrects evoked responses
+        trialLevel.event_related_subjects(pupil_dv='pupil_psc')  # psc: percent signal change, per event of interest, 1 output for all trials+subjects
+        trialLevel.save_baselines()  # save baseline pupil dilation before first touch (stim_locked) and second touch (feed_locked)
+        trialLevel.event_related_baseline_correction()           # per event of interest, baseline corrrects evoked responses
 
 # -----------------------
 # 2AFC Decision Task, MEAN responses and group level statistics 
@@ -134,8 +143,8 @@ if higher_level:
         experiment_name         = experiment_name,
         project_directory       = data_dir, 
         sample_rate             = sample_rate,
-        time_locked             = ['feed_locked'],
-        pupil_step_lim          = [pupil_step_lim[3]],                
+        time_locked             = ['stim_locked', 'resp_locked', 'feed_locked'],
+        pupil_step_lim          = [pupil_step_lim[1], pupil_step_lim[2], pupil_step_lim[3]],                
         baseline_window         = baseline_window,              
         pupil_time_of_interest  = [[0.75,1.25], [3.0,3.5]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
         )
@@ -146,7 +155,7 @@ if higher_level:
     ''' Evoked pupil response
     '''
     # higherLevel.dataframe_evoked_pupil_higher()  # per event of interest, outputs one dataframe or np.array? for all trials for all subject on pupil time series
-    higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
+    # higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
     
     
     # higherLevel.average_conditions()           # group level data frames for all main effects + interaction

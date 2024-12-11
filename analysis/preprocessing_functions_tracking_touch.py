@@ -162,7 +162,7 @@ class pupilPreprocess(object):
         # Events/messages 
         input_edf = os.path.join(self.base_directory, self.alias+'.EDF')
         cmd = 'edf2asc -e -y {}'.format(input_edf)
-            
+                    
         subprocess.call( cmd, shell=True, bufsize=0,)
         # saves as 'asc' by default, rename file 
         shutil.move(self.standardOutputFileName, self.messageOutputFileName)
@@ -176,17 +176,6 @@ class pupilPreprocess(object):
         subprocess.call( cmd, shell=True, bufsize=0,)
         print('Success: convert_edfs')
     
-    
-    def copy_sourcedata_derivatives(self, source_dir):
-        """Copy the sourcedata folder to the derivatives directory.
-        
-        Parameters
-        ----------
-       	source_dir : string
-       		path to sourcedata directory.
-        """        
-        shutil.copytree(os.path.join(source_dir, self.subject), self.base_directory, dirs_exist_ok=True)
-        print('Success: copy_sourcedata_derivatives')
         
         
     def read_trials(self,):
@@ -1118,17 +1107,18 @@ class trials(object):
         Saves baselines per trial in separate file.
         """
         for t,time_locked in enumerate(self.time_locked):
-            
-            if ('stim' in time_locked) or ('feed' in time_locked):
+                        
+            if not 'resp' in time_locked:
+                
                 pupil_step_lim = self.pupil_step_lim[t]
 
                 P = pd.read_csv(os.path.join(self.project_directory,'{}_{}_evoked.csv'.format(self.alias,time_locked)))
                 P.drop(['Unnamed: 0'],axis=1,inplace=True)
                 P = np.array(P)
-                
+            
                 baselines_file = os.path.join(self.project_directory,'{}_{}_baselines.csv'.format(self.alias,time_locked))  # save baseline pupils
                 SAVE_TRIALS = []
-                
+            
                 for trial in range(len(P)):
                     event_idx = int(abs(pupil_step_lim[0]*self.sample_rate))
                     base_start = int(event_idx - (self.baseline_window*self.sample_rate))
@@ -1136,41 +1126,44 @@ class trials(object):
                     # mean within baseline window
                     this_base = np.mean(P[trial,base_start:base_end]) 
                     SAVE_TRIALS.append(this_base)
-                
+            
                 # save baseline means!
                 B = pd.DataFrame()
                 B['pupil_baseline_' + time_locked] = np.array(SAVE_TRIALS) #was pupil_b
                 B.to_csv(baselines_file, float_format='%.16f')
                 print('subject {}, {} save_baselines'.format(self.subject,time_locked))
-        print('sucess: save_baselines')
+            print('sucess: save_baselines')
         
     def event_related_baseline_correction(self):
         """Baseline correction on evoked responses, per trial. 
         
         Notes
         -----
-        Saves baselines per trial in separate file.
+        'resp_locked' corrected with 'stim' baseline
         """
         for t,time_locked in enumerate(self.time_locked):
-            
-            if ('stim' in time_locked) or ('feed' in time_locked):
-            
-                pupil_step_lim = self.pupil_step_lim[t]
-                
-                # evoked dataframe
-                P = pd.read_csv(os.path.join(self.project_directory,'{}_{}_evoked.csv'.format(self.alias,time_locked)))
-                P.drop(['Unnamed: 0'],axis=1,inplace=True)
-                P = np.array(P)
-                
-                # baselines dataframe
-                B = pd.read_csv(os.path.join(self.project_directory,'{}_{}_baselines.csv'.format(self.alias,time_locked))) 
-                B.drop(['Unnamed: 0'],axis=1,inplace=True)
-                B = np.array(B)
-                
-                P = P-B
-                # save baseline corrected events and baseline means too!
-                P = pd.DataFrame(P)
-                P.to_csv(os.path.join(self.project_directory,'{}_{}_evoked_basecorr.csv'.format(self.alias,time_locked)), float_format='%.16f')
+                        
+            if 'resp' in time_locked:
+                time_locked_baselines = 'stim_locked'
+            else:
+                time_locked_baselines = time_locked            
+        
+            pupil_step_lim = self.pupil_step_lim[t]
+        
+            # evoked dataframe
+            P = pd.read_csv(os.path.join(self.project_directory,'{}_{}_evoked.csv'.format(self.alias,time_locked)))
+            P.drop(['Unnamed: 0'],axis=1,inplace=True)
+            P = np.array(P)
+        
+            # baselines dataframe
+            B = pd.read_csv(os.path.join(self.project_directory,'{}_{}_baselines.csv'.format(self.alias,time_locked_baselines))) 
+            B.drop(['Unnamed: 0'],axis=1,inplace=True)
+            B = np.array(B)
+        
+            P = P-B
+            # save baseline corrected events and baseline means too!
+            P = pd.DataFrame(P)
+            P.to_csv(os.path.join(self.project_directory,'{}_{}_evoked_basecorr.csv'.format(self.alias,time_locked)), float_format='%.16f')
 
-                print('subject {}, {} events baseline corrected'.format(self.subject,time_locked))
+            print('subject {}, {} events baseline corrected'.format(self.subject,time_locked))
         print('sucess: event_related_baseline_correction')
