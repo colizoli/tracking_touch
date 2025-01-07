@@ -44,7 +44,7 @@ else:
     reps      = REPS
 
 # multiply intensities
-int_mult = 1.2
+int_mult = 1.3 # 1.3
 
 # Timing in seconds
 t_baseline  = 1   # baseline pupil
@@ -239,8 +239,8 @@ if subject_ID:
         trial_num += 1 
                
     # End screen for participants
-    stim_instr.setText('Well done! Data transfering.....')
-    stim_instr.draw()
+    stim_instr1.setText('Well done! Data transfering.....')
+    stim_instr1.draw()
     win.flip()
         
     # Close-up   
