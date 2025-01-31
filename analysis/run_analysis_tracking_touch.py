@@ -14,6 +14,7 @@ Need to have the EYELINK software installed on the terminal
 """
 
 # TO DO:
+# a few subjects missing correct trials for low frequency!
 
 
 ############################################################################
@@ -158,7 +159,7 @@ if higher_level:
     # higherLevel.calculate_actual_frequencies()  # calcuate the actual frequencies of the touch pairs
     # higherLevel.average_conditions()            # group level data frames for all main effects + interaction
     # higherLevel.plot_behavior_blocks()          # boxplots for accuracy and RT per block
-    higherLevel.plot_behavior()                 # simple bar plots of accuracy and RT per block and overall mean
+    # higherLevel.plot_behavior()                 # simple bar plots of accuracy and RT for 1-way effects
     
     ''' Evoked pupil response
     '''
@@ -168,17 +169,15 @@ if higher_level:
     ''' Phasic time-window averaged pupil response
     '''
     # higherLevel.plot_phasic_pupil_pe()         # plots the interaction between the frequency and accuracy
-    ## higherLevel.individual_differences()       # individual differences correlation between behavior and pupil
-    
-
+    # higherLevel.individual_differences()       # individual differences correlation between behavior and pupil
     
     
     ''' Ideal learner model
     '''
     # higherLevel.information_theory_estimates()
-    # higherLevel.pupil_information_correlation_matrix()
+    # higherLevel.information_correlation_matrix()
     # higherLevel.dataframe_evoked_correlation()
-    # higherLevel.plot_information_regression_evoked()
+    # higherLevel.plot_pupil_information_regression_evoked()
     # higherLevel.average_information_conditions()
     # higherLevel.plot_information()
     

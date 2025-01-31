@@ -871,9 +871,9 @@ class higherLevel(object):
                     g_idx.insert(0, 'subject') # get strings not list element
                 
                 for s,subj in enumerate(self.subjects):
-                    subj_num = re.findall(r'\d+', subj)[0]
-                    SBEHAV = DF[DF['subject']==int(subj_num)].reset_index() # not 'sub-' in DF
-                    SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory,subj,'{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj, self.exp, time_locked)), float_precision='high'))
+                    # subj_num = re.findall(r'\d+', subj)[0]
+                    SBEHAV = DF[DF['subject']==subj].reset_index() # not 'sub-' in DF
+                    SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory, 'sub-{}'.format(subj), 'sub-{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj, self.exp, time_locked)), float_precision='high'))
                     SPUPIL = SPUPIL.loc[:, ~SPUPIL.columns.str.contains('^Unnamed')] # remove all unnamed columns
                     
                     # merge behavioral and evoked dataframes so we can group by conditions
@@ -905,299 +905,361 @@ class higherLevel(object):
         tick_spacer = 3
         
         #######################
-        # FEEDBACK MEAN RESPONSE
+        # MEAN RESPONSE
         #######################
-        fig = plt.figure(figsize=(4,2))
-        ax = fig.add_subplot(111)
-        t = 0
-        time_locked = 'feed_locked'
-        factor = 'subject'
-        kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
-        # determine time points x-axis given sample rate
-        event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
-        end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
-        mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
+        fig = plt.figure(figsize=(8,2))
+        for t,time_locked in enumerate(self.time_locked):
+            ax = fig.add_subplot(1,2,t+1)
+            factor = 'subject'
+            
+            kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
+            # determine time points x-axis given sample rate
+            event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
+            end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
+            mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
 
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
 
-        # Compute means, sems across group
-        COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,factor)), float_precision='high')
-        COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+            # Compute means, sems across group
+            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,factor)), float_precision='high')
+            COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
     
-        xticklabels = ['mean response']
-        colors = ['black'] # black
-        alphas = [1]
+            xticklabels = ['mean response']
+            colors = ['black'] # black
+            alphas = [1]
 
-        # plot time series
-        i=0
-        TS = np.array(COND.iloc[:,-kernel:]) # index from back to avoid extra unnamed column pandas
-        self.tsplot(ax, TS, color='k', label=xticklabels[i])
-        # self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+            # plot time series
+            i=0
+            TS = np.array(COND.iloc[:,-kernel:]) # index from back to avoid extra unnamed column pandas
+            self.tsplot(ax, TS, color='k', label=xticklabels[i])
+            # self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
     
-        # set figure parameters
-        ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+            # set figure parameters
+            ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
         
-        # Shade all time windows of interest in grey, will be different for events
-        for twi in self.pupil_time_of_interest:       
-            tw_begin = int(event_onset + (twi[0]*self.sample_rate))
-            tw_end = int(event_onset + (twi[1]*self.sample_rate))
-            ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+            # Shade all time windows of interest in grey, will be different for events
+            for twi in self.pupil_time_of_interest:       
+                tw_begin = int(event_onset + (twi[0]*self.sample_rate))
+                tw_end = int(event_onset + (twi[1]*self.sample_rate))
+                ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
         
-        # shade baseline pupil
-        twb = [-self.baseline_window, 0]
-        baseline_onset = int(abs(twb[0]*self.sample_rate))
-        twb_begin = int(baseline_onset + (twb[0]*self.sample_rate))
-        twb_end = int(baseline_onset + (twb[1]*self.sample_rate))
-        ax.axvspan(twb_begin,twb_end, facecolor='k', alpha=0.1)
+            # shade baseline pupil
+            twb = [-self.baseline_window, 0]
+            baseline_onset = int(abs(twb[0]*self.sample_rate))
+            twb_begin = int(baseline_onset + (twb[0]*self.sample_rate))
+            twb_end = int(baseline_onset + (twb[1]*self.sample_rate))
+            ax.axvspan(twb_begin,twb_end, facecolor='k', alpha=0.1)
 
-        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
-        ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+            xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
+            ax.set_xticks(xticks)
+            ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
   
-        # ax.set_ylim(ylim_feed)
-        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
-        ax.set_xlabel('Time from feedback (s)')
-        ax.set_ylabel('Pupil response\n(% signal change)')
-        ax.set_title(time_locked)
+            # ax.set_ylim(ylim_feed)
+            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+            ax.set_xlabel('Time from {} (s)'.format(time_locked))
+            ax.set_ylabel('Pupil response\n(% signal change)')
+            ax.set_title(time_locked)
                 
-        # compute peak of mean response to center time window around
-        m = np.mean(TS,axis=0)
-        argm = np.true_divide(np.argmax(m),self.sample_rate) + self.pupil_step_lim[t][0] # subtract pupil baseline to get timing
-        print('mean response = {} peak @ {} seconds'.format(np.max(m),argm))
-        # ax.axvline(np.argmax(m), lw=0.25, alpha=0.5, color = 'k')
-        # whole figure format
-        sns.despine(offset=10, trim=True)
-        plt.tight_layout()
-        fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, factor)))
+            # compute peak of mean response to center time window around
+            m = np.mean(TS,axis=0)
+            argm = np.true_divide(np.argmax(m),self.sample_rate) + self.pupil_step_lim[t][0] # subtract pupil baseline to get timing
+            print('mean response = {} peak @ {} seconds'.format(np.max(m),argm))
+            # ax.axvline(np.argmax(m), lw=0.25, alpha=0.5, color = 'k')
+            # whole figure format
+            sns.despine(offset=10, trim=True)
+            plt.tight_layout()
+            fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, factor)))
         
         #######################
         # CORRECT
         #######################
-        fig = plt.figure(figsize=(4,2))
-        ax = fig.add_subplot(111)
-        t = 0
-        time_locked = 'feed_locked'
-        csv_name = 'correct'
-        factor = 'correct'
-        kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
-        # determine time points x-axis given sample rate
-        event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
-        end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
-        mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
+        fig = plt.figure(figsize=(8,2))
+        for t,time_locked in enumerate(self.time_locked):
+            ax = fig.add_subplot(1,2,t+1)
+            csv_name = 'correct'
+            factor = 'correct'
 
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+            kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
+            # determine time points x-axis given sample rate
+            event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
+            end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
+            mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
 
-        # Compute means, sems across group
-        COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,csv_name)), float_precision='high')
-        COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+
+            # Compute means, sems across group
+            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,csv_name)), float_precision='high')
+            COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
                     
-        xticklabels = ['Error','Correct']
-        colorsts = ['r','b',]
-        alpha_fills = [0.2,0.2] # fill
-        alpha_lines = [1,1]
-        save_conds = []
+            xticklabels = ['Error','Correct']
+            colorsts = ['r','b',]
+            alpha_fills = [0.2,0.2] # fill
+            alpha_lines = [1,1]
+            save_conds = []
         
-        # plot time series
-        for i,x in enumerate(np.unique(COND[factor])):
-            TS = COND[COND[factor]==x] # select current condition data only
-            TS = np.array(TS.iloc[:,-kernel:])
-            self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
-            save_conds.append(TS) # for stats
+            # plot time series
+            for i,x in enumerate(np.unique(COND[factor])):
+                TS = COND[COND[factor]==x] # select current condition data only
+                TS = np.array(TS.iloc[:,-kernel:])
+                self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
+                save_conds.append(TS) # for stats
         
-        # stats        
-        ### COMPUTE INTERACTION TERM AND TEST AGAINST 0!
-        pe_difference = save_conds[0]-save_conds[1]
-        # self.cluster_sig_bar_1samp(array=pe_difference, x=pd.Series(range(pe_difference.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+            # stats        
+            ### COMPUTE INTERACTION TERM AND TEST AGAINST 0!
+            pe_difference = save_conds[0]-save_conds[1]
+            self.cluster_sig_bar_1samp(array=pe_difference, x=pd.Series(range(pe_difference.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
 
-        # set figure parameters
-        ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+            # set figure parameters
+            ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
         
-        # Shade all time windows of interest in grey, will be different for events
-        for twi in self.pupil_time_of_interest:       
-            tw_begin = int(event_onset + (twi[0]*self.sample_rate))
-            tw_end = int(event_onset + (twi[1]*self.sample_rate))
-            ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+            # Shade all time windows of interest in grey, will be different for events
+            for twi in self.pupil_time_of_interest:       
+                tw_begin = int(event_onset + (twi[0]*self.sample_rate))
+                tw_end = int(event_onset + (twi[1]*self.sample_rate))
+                ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
 
-        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
-        ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+            xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
+            ax.set_xticks(xticks)
+            ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
   
-        # ax.set_ylim(ylim_feed)
-        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
-        ax.set_xlabel('Time from feedback (s)')
-        ax.set_ylabel('Pupil response\n(% signal change)')
-        ax.set_title(time_locked)
-        # ax.legend(loc='best')
-        # whole figure format
-        sns.despine(offset=10, trim=True)
-        plt.tight_layout()
-        fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
+            # ax.set_ylim(ylim_feed)
+            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+            ax.set_xlabel('Time from {} (s)'.format(time_locked))
+            ax.set_ylabel('Pupil response\n(% signal change)')
+            ax.set_title(factor)
+            # ax.legend(loc='best')
+            # whole figure format
+            sns.despine(offset=10, trim=True)
+            plt.tight_layout()
+            fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
         
         #######################
-        # TOUCH1
+        # TOUCH1 and TOUCH2
         #######################
-        fig = plt.figure(figsize=(4,2))
-        ax = fig.add_subplot(111)
-        t = 0
-        time_locked = 'feed_locked'
-        csv_name = 'touch1'
-        factor = 'touch1'
-        kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
-        # determine time points x-axis given sample rate
-        event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
-        end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
-        mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
-
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-
-        # Compute means, sems across group
-        COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,csv_name)), float_precision='high')
-        COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
-                    
-        xticklabels = ['1','2','3']
-        colorsts = ['indigo','indigo','indigo']
-        alpha_fills = [0.2,0.2,0.2] # fill
-        alpha_lines = [.3,.6,1.]
-        save_conds = []
-        
-        # plot time series
-        for i,x in enumerate(np.unique(COND[factor])):
-            TS = COND[COND[factor]==x] # select current condition data only
-            TS = np.array(TS.iloc[:,-kernel:])
-            self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
-            save_conds.append(TS) # for stats
-        
-        ### STATS - RM_ANOVA ###
-        # loop over time points, run anova, save F-statistic for cluster correction
-        # first 3 columns are subject, correct, frequency
-        # get pval for the interaction term (last element in res.anova_table)
-        interaction_pvals = np.empty(COND.shape[-1]-3)
-        # for timepoint in np.arange(COND.shape[-1]-3):
-        #     this_df = COND.iloc[:,:timepoint+4]
-        #     aovrm = AnovaRM(this_df, str(timepoint), 'subject', within=['touch1'])
-        #     res = aovrm.fit()
-        #     interaction_pvals[timepoint] = np.array(res.anova_table)[-1][-1] # last row, last element
+        for factor in ['touch1','touch2']:
+            fig = plt.figure(figsize=(8,2))
             
-        # stats        
-        # self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
-    
-        # set figure parameters
-        ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-        
-        # Shade all time windows of interest in grey, will be different for events
-        for twi in self.pupil_time_of_interest:       
-            tw_begin = int(event_onset + (twi[0]*self.sample_rate))
-            tw_end = int(event_onset + (twi[1]*self.sample_rate))
-            ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+            for t,time_locked in enumerate(self.time_locked):
+                ax = fig.add_subplot(1,2,t+1)
+                csv_name = factor
+            
+                kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
+                # determine time points x-axis given sample rate
+                event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
+                end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
+                mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
 
-        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
-        ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
-  
-        # ax.set_ylim(ylim_feed)
-        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
-        ax.set_xlabel('Time from feedback (s)')
-        ax.set_ylabel('Pupil response\n(% signal change)')
-        ax.set_title(time_locked)
-        ax.legend(loc='best')
-        # whole figure format
-        sns.despine(offset=10, trim=True)
-        plt.tight_layout()
-        fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
+                ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+
+                # Compute means, sems across group
+                COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp, time_locked, csv_name)), float_precision='high')
+                COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+                    
+                xticklabels = ['1','2','3']
+                colorsts = ['indigo','indigo','indigo']
+                alpha_fills = [0.2,0.2,0.2] # fill
+                alpha_lines = [.3,.6,1.]
+                save_conds = []
         
+                # plot time series
+                for i,x in enumerate(np.unique(COND[factor])):
+                    TS = COND[COND[factor]==x] # select current condition data only
+                    TS = np.array(TS.iloc[:,-kernel:])
+                    self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
+                    save_conds.append(TS) # for stats
+        
+                ### STATS - RM_ANOVA ###
+                # loop over time points, run anova, save F-statistic for cluster correction
+                # first 3 columns are subject, correct, frequency
+                # get pval for the interaction term (last element in res.anova_table)
+                interaction_pvals = np.empty(COND.shape[-1]-3)
+                # for timepoint in np.arange(COND.shape[-1]-3):
+                #     this_df = COND.iloc[:,:timepoint+4]
+                #     aovrm = AnovaRM(this_df, str(timepoint), 'subject', within=['touch1'])
+                #     res = aovrm.fit()
+                #     interaction_pvals[timepoint] = np.array(res.anova_table)[-1][-1] # last row, last element
+            
+                # stats        
+                # self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
+    
+                # set figure parameters
+                ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
+                ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+        
+                # Shade all time windows of interest in grey, will be different for events
+                for twi in self.pupil_time_of_interest:       
+                    tw_begin = int(event_onset + (twi[0]*self.sample_rate))
+                    tw_end = int(event_onset + (twi[1]*self.sample_rate))
+                    ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+
+                xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
+                ax.set_xticks(xticks)
+                ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
+                # ax.set_ylim(ylim_feed)
+                # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+                ax.set_xlabel('Time from {} (s)'.format(time_locked))
+                ax.set_ylabel('Pupil response\n(% signal change)')
+                ax.set_title(factor)
+                ax.legend(loc='best')
+                # whole figure format
+                sns.despine(offset=10, trim=True)
+                plt.tight_layout()
+                fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
+        
+        #######################
+        # FINGER DISTANCE
+        #######################
+        fig = plt.figure(figsize=(8,2))
+        for t,time_locked in enumerate(self.time_locked):
+            ax = fig.add_subplot(1,2,t+1)
+            csv_name = 'finger_distance'
+            factor = 'finger_distance'
+        
+            kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
+            # determine time points x-axis given sample rate
+            event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
+            end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
+            mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
+
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+
+            # Compute means, sems across group
+            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp, time_locked, csv_name)), float_precision='high')
+            COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+                
+            xticklabels = ['1','2','3']
+            colorsts = ['orange','orange','orange']
+            alpha_fills = [0.2,0.2,0.2] # fill
+            alpha_lines = [.3,.6,1.]
+            save_conds = []
+    
+            # plot time series
+            for i,x in enumerate(np.unique(COND[factor])):
+                TS = COND[COND[factor]==x] # select current condition data only
+                TS = np.array(TS.iloc[:,-kernel:])
+                self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
+                save_conds.append(TS) # for stats
+    
+            ### STATS - RM_ANOVA ###
+            # loop over time points, run anova, save F-statistic for cluster correction
+            # first 3 columns are subject, correct, frequency
+            # get pval for the interaction term (last element in res.anova_table)
+            interaction_pvals = np.empty(COND.shape[-1]-3)
+            # for timepoint in np.arange(COND.shape[-1]-3):
+            #     this_df = COND.iloc[:,:timepoint+4]
+            #     aovrm = AnovaRM(this_df, str(timepoint), 'subject', within=['touch1'])
+            #     res = aovrm.fit()
+            #     interaction_pvals[timepoint] = np.array(res.anova_table)[-1][-1] # last row, last element
+        
+            # stats        
+            # self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
+
+            # set figure parameters
+            ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+    
+            # Shade all time windows of interest in grey, will be different for events
+            for twi in self.pupil_time_of_interest:       
+                tw_begin = int(event_onset + (twi[0]*self.sample_rate))
+                tw_end = int(event_onset + (twi[1]*self.sample_rate))
+                ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+
+            xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
+            ax.set_xticks(xticks)
+            ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+
+            # ax.set_ylim(ylim_feed)
+            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+            ax.set_xlabel('Time from {} (s)'.format(time_locked))
+            ax.set_ylabel('Pupil response\n(% signal change)')
+            ax.set_title(factor)
+            ax.legend(loc='best')
+            # whole figure format
+            sns.despine(offset=10, trim=True)
+            plt.tight_layout()
+            fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
+                
         #######################
         # CORRECT x FREQUENCY
         #######################
-        fig = plt.figure(figsize=(4,2))
-        ax = fig.add_subplot(111)
-        t = 0
-        time_locked = 'feed_locked'
-        csv_name = 'correct-touch1'
-        factor = ['correct','touch1']
-        kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
-        # determine time points x-axis given sample rate
-        event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
-        end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
-        mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
+        fig = plt.figure(figsize=(8,2))
+        for t,time_locked in enumerate(self.time_locked):
+            ax = fig.add_subplot(1,2,t+1)
 
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+            csv_name = 'correct-frequency'
+            factor = ['correct','frequency']
+            kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
+            # determine time points x-axis given sample rate
+            event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
+            end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
+            mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
 
-        # Compute means, sems across group
-        COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,csv_name)), float_precision='high')
-        COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+
+            # Compute means, sems across group
+            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp, time_locked, csv_name)), float_precision='high')
+            COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
         
-        labels_frequences = np.unique(COND['touch1'])
+            labels_frequences = np.unique(COND['frequency'])
         
-        ########
-        # make unique labels for each of the 4 conditions
-        conditions = [
-            (COND['correct'] == 0) & (COND['touch1'] == labels_frequences[2]), # Easy Error 1
-            (COND['correct'] == 1) & (COND['touch1'] == labels_frequences[2]), # Easy Correct 2
-            (COND['correct'] == 0) & (COND['touch1'] == labels_frequences[0]), # Hard Error 3
-            (COND['correct'] == 1) & (COND['touch1'] == labels_frequences[0]), # Hard Correct 4
-            (COND['correct'] == 0) & (COND['touch1'] == labels_frequences[1]), # Medium Error 5 # coded like this to keep in order with other experiments
-            (COND['correct'] == 1) & (COND['touch1'] == labels_frequences[1]), # Medium Correct 6
-            ]
-        values = [1,2,3,4,5,6]
-        conditions = np.select(conditions, values) # don't add as column to time series otherwise it gets plotted
-        ########
+            ########
+            # make unique labels for each of the 4 conditions
+            conditions = [
+                (COND['correct'] == 0) & (COND['frequency'] == 'high'), # Easy Error 1
+                (COND['correct'] == 1) & (COND['frequency'] == 'high'), # Easy Correct 2
+                (COND['correct'] == 0) & (COND['frequency'] == 'low'), # Hard Error 3
+                (COND['correct'] == 1) & (COND['frequency'] == 'low'), # Hard Correct 4
+                ]
+            values = [1,2,3,4]
+            conditions = np.select(conditions, values) # don't add as column to time series otherwise it gets plotted
+            ########
                     
-        xticklabels = ['Error 1', 'Correct 1', 'Error 3', 'Correct 3', 'Error 2', 'Correct 2']
-        colorsts = ['r', 'b', 'r', 'b', 'r', 'b']
-        alpha_fills = [0.2, 0.2, 0.1, 0.1, 0.15, .15] # fill
-        alpha_lines = [1, 1, 0.6, 0.6, 0.8, 0.8]
-        linestyle= ['solid', 'solid', 'dotted', 'dotted', 'dashed', 'dashed']
-        save_conds = []
-        # plot time series
+            xticklabels = ['Error 1', 'Correct 1', 'Error 2', 'Correct 2']
+            colorsts = ['r', 'b', 'r', 'b']
+            alpha_fills = [0.2, 0.2, 0.1, 0.1] # fill
+            alpha_lines = [1, 1, 0.8, 0.8]
+            linestyle= ['solid', 'solid', 'dashed', 'dashed']
+            save_conds = []
+            # plot time series
         
-        for i,x in enumerate(values):
-            TS = COND[conditions==x] # select current condition data only
-            TS = np.array(TS.iloc[:,-kernel:])
-            self.tsplot(ax, TS, linestyle=linestyle[i], color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
-            save_conds.append(TS) # for stats
-        
-        ### STATS - RM_ANOVA ###
-        # loop over time points, run anova, save F-statistic for cluster correction
-        # first 3 columns are subject, correct, frequency
-        # get pval for the interaction term (last element in res.anova_table)
-        interaction_pvals = np.empty(COND.shape[-1]-3)
-        # for timepoint in np.arange(COND.shape[-1]-3):
-        #     this_df = COND.iloc[:,:timepoint+4]
-        #     aovrm = AnovaRM(this_df, str(timepoint), 'subject', within=['correct', 'frequency'])
-        #     res = aovrm.fit()
-        #     interaction_pvals[timepoint] = np.array(res.anova_table)[-1][-1] # last row, last element
+            for i,x in enumerate(values):
+                TS = COND[conditions==x] # select current condition data only
+                TS = np.array(TS.iloc[:,-kernel:])
+                self.tsplot(ax, TS, linestyle=linestyle[i], color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
+                save_conds.append(TS) # for stats
             
-        # stats        
-        # self.timeseries_fdr_correction(pvals=interaction_pvals, xind=pd.Series(range(interaction_pvals.shape[-1])), color='black', ax=ax)
-
-        # set figure parameters
-        ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-        
-        # Shade all time windows of interest in grey, will be different for events
-        for twi in self.pupil_time_of_interest:       
-            tw_begin = int(event_onset + (twi[0]*self.sample_rate))
-            tw_end = int(event_onset + (twi[1]*self.sample_rate))
-            ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+            # stats
+            # pe_interaction = (save_conds[0]-save_conds[1]) - (save_conds[2]-save_conds[3])
+            # self.cluster_sig_bar_1samp(array=pe_interaction, x=pd.Series(range(pe_interaction.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
             
-        xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
-        ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+            # set figure parameters
+            ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+        
+            # Shade all time windows of interest in grey, will be different for events
+            for twi in self.pupil_time_of_interest:       
+                tw_begin = int(event_onset + (twi[0]*self.sample_rate))
+                tw_end = int(event_onset + (twi[1]*self.sample_rate))
+                ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+            
+            xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
+            ax.set_xticks(xticks)
+            ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
   
-        # ax.set_ylim(ylim_feed)
-        # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
-        ax.set_xlabel('Time from feedback (s)')
-        ax.set_ylabel('Pupil response\n(% signal change)')
-        ax.set_title(time_locked)
-        ax.legend(loc='best')
+            # ax.set_ylim(ylim_feed)
+            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+            ax.set_xlabel('Time from {} (s)'.format(time_locked))
+            ax.set_ylabel('Pupil response\n(% signal change)')
+            ax.set_title(time_locked)
+            ax.legend(loc='best')
                 
-        # whole figure format
-        sns.despine(offset=10, trim=True)
-        plt.tight_layout()
-        fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
+            # whole figure format
+            sns.despine(offset=10, trim=True)
+            plt.tight_layout()
+            fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
         print('success: plot_evoked_pupil')
         
         
@@ -1218,11 +1280,11 @@ class higherLevel(object):
         ]
         tick_spacer = [1, 1, 2, .2]
         
-        dvs = ['pupil_feed_locked_t1', 'pupil_feed_locked_t2', 'RT']
-        ylabels = ['Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'RT (s)']
-        factor = ['touch1','correct'] 
-        xlabel = 'First touch'
-        xticklabels = ['1','2','3'] 
+        dvs = ['pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked', 'RT']
+        ylabels = ['Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'RT (s)']
+        factor = ['frequency','correct'] 
+        xlabel = 'Frequency'
+        xticklabels = ['high','low'] 
         labels = ['Error','Correct']
         colors = ['red','blue'] 
         
@@ -1234,7 +1296,7 @@ class higherLevel(object):
             fig = plt.figure(figsize=(2, 2))
             ax = fig.add_subplot(111)
             
-            DFIN = pd.read_csv(os.path.join(self.averages_folder, '{}_correct-touch1_{}.csv'.format(self.exp, pupil_dv)), float_precision='high')
+            DFIN = pd.read_csv(os.path.join(self.averages_folder, '{}_correct-frequency_{}.csv'.format(self.exp, pupil_dv)), float_precision='high')
             DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
             
             # Group average per BIN WINDOW
@@ -1256,13 +1318,13 @@ class higherLevel(object):
             ax.set_xlabel(xlabel)
             ax.set_xticks(xind)
             ax.set_xticklabels(xticklabels)
-            ax.set_ylim(ylim[dvi])
-            ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer[dvi]))
+            # ax.set_ylim(ylim[dvi])
+            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer[dvi]))
             # ax.legend()
 
             sns.despine(offset=10, trim=True)
             plt.tight_layout()
-            fig.savefig(os.path.join(self.figure_folder, '{}_correct-touch1_{}_lines.pdf'.format(self.exp, pupil_dv)))
+            fig.savefig(os.path.join(self.figure_folder, '{}_correct-frequency_{}_lines.pdf'.format(self.exp, pupil_dv)))
         print('success: plot_phasic_pupil_pe')
     
     
@@ -1273,18 +1335,18 @@ class higherLevel(object):
        -----
        3 figures: 1 per pupil DV
        """
-       dvs = ['pupil_feed_locked_t1', 'pupil_feed_locked_t2', 'pupil_baseline_feed_locked']
+       dvs = ['pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']
               
        for sp,pupil_dv in enumerate(dvs):
            fig = plt.figure(figsize=(2,2))
            ax = fig.add_subplot(111) # 1 subplot per bin window
            
-           B = pd.read_csv(os.path.join(self.jasp_folder,'{}_touch1_correct_rmanova.csv'.format(self.exp)), float_precision='high')
-           P = pd.read_csv(os.path.join(self.jasp_folder,'{}_touch1_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_precision='high')
+           B = pd.read_csv(os.path.join(self.jasp_folder,'{}_frequency_correct_rmanova.csv'.format(self.exp)), float_precision='high')
+           P = pd.read_csv(os.path.join(self.jasp_folder,'{}_frequency_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_precision='high')
 
            # frequency effect
-           P['main_effect_freq'] = (P['80']-P['20'])
-           B['main_effect_freq'] = (B['80']-B['20']) # fraction correct
+           P['main_effect_freq'] = (P['high']-P['low'])
+           B['main_effect_freq'] = (B['high']-B['low']) # fraction correct
            
            x = np.array(B['main_effect_freq'])
            y = np.array(P['main_effect_freq'])           
@@ -1301,8 +1363,8 @@ class higherLevel(object):
            
            # set figure parameters
            ax.set_title('rs = {}, p = {}'.format(np.round(r,2),np.round(pval,3)))
-           ax.set_ylabel('{} (80-20%)'.format(pupil_dv))
-           ax.set_xlabel('accuracy (80-20%)')
+           ax.set_ylabel('{} (High-Low Frequency)'.format(pupil_dv))
+           ax.set_xlabel('accuracy (High-Low Frequency)')
            # ax.legend()
            
            plt.tight_layout()
@@ -1437,9 +1499,8 @@ class higherLevel(object):
         # loop subjects
         for s,subj in enumerate(self.subjects):
             
-            this_subj = int(''.join(filter(str.isdigit, subj))) # get number of subject only
             # get current subjects data only
-            this_df = df_in[df_in['subject']==this_subj].copy()
+            this_df = df_in[df_in['subject']==subj].copy()
             
             # the input to the model is the trial sequence = the order of cue_target/prediction_pair for each participant
             [model_e, model_P, model_p, model_I, model_i, model_H, model_CH, model_D] = self.idt_model(this_df, 'touch_pair', elements)
@@ -1482,9 +1543,8 @@ class higherLevel(object):
         # loop subjects
         for s, subj in enumerate(self.subjects):
             
-            this_subj = int(''.join(filter(str.isdigit, subj))) 
             # get current subject's data only
-            this_df = DF[DF['subject']==this_subj].copy(deep=False)
+            this_df = DF[DF['subject']==subj].copy(deep=False)
                             
             x = this_df[ivs] # select information variable columns
             x_corr = x.corr() # correlation matrix
@@ -1563,11 +1623,9 @@ class higherLevel(object):
                     # loop subjects
                     for s, subj in enumerate(self.subjects):
 
-                        this_subj = int(''.join(filter(str.isdigit, subj)))
                         # get current subject's data only
-
-                        SBEHAV = DF[DF['subject']==this_subj].reset_index()
-                        SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory,subj,'{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj,self.exp,time_locked)), float_precision='high'))
+                        SBEHAV = DF[DF['subject']==subj].reset_index()
+                        SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory, 'sub-{}'.format(subj), 'sub-{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj, self.exp, time_locked)), float_precision='high'))
                         SPUPIL = SPUPIL.loc[:, ~SPUPIL.columns.str.contains('^Unnamed')] # remove all unnamed columns
 
                         # merge behavioral and evoked dataframes so we can group by conditions
@@ -1595,8 +1653,7 @@ class higherLevel(object):
                                 Y = Y[mask] # pupil 
                                 X = X[mask] # IV
                             
-                            # r, pval = sp.stats.pearsonr(np.array(X), np.array(Y))
-                            r, pval = sp.stats.spearmanr(np.array(X), np.array(Y))
+                            r, pval = sp.stats.pearsonr(np.array(X), np.array(Y))
 
                             save_timepoint_r.append(self.fisher_transform(r))
 
@@ -1621,7 +1678,7 @@ class higherLevel(object):
         tick_spacer = 0.1
         
         ivs = ['model_i', 'model_H', 'model_D']
-        labels = ['Information', 'Entropy', 'KL divergence']
+        labels = ['Surprise', 'Entropy', 'KL divergence']
     
         # xticklabels = ['mean response']
         colors = ['teal', 'orange', 'purple'] # black
@@ -1630,94 +1687,30 @@ class higherLevel(object):
         #######################
         # FEEDBACK PLOT BETAS FOR EACH MODEL DV
         #######################
-        fig = plt.figure(figsize=(4,2))
-        ax = fig.add_subplot(111)
-        t = 0
-        time_locked = 'feed_locked'
-        factor = 'subject'
-        kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
-        # determine time points x-axis given sample rate
-        event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
-        end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
-        mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
-                
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-        
-        for i,iv in enumerate(ivs):
-            # Compute means, sems across group
-            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, 'all_trials', iv)), float_precision='high')
-            COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+        fig = plt.figure(figsize=(8,2))
+        for t,time_locked in enumerate(self.time_locked):
+            ax = fig.add_subplot(1,2,t+1)
 
-            # plot time series
-            TS = np.array(COND.T) # flip so subjects are rows
-            self.tsplot(ax, TS, color=colors[i], label=labels[i])
-            try:
-                self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1+i, color=colors[i], ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)           
-            except:
-                shell()
-        # set figure parameters
-        ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
-        ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-        
-        # Shade all time windows of interest in grey, will be different for events
-        for twi in self.pupil_time_of_interest:
-            tw_begin = int(event_onset + (twi[0]*self.sample_rate))
-            tw_end = int(event_onset + (twi[1]*self.sample_rate))
-            ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
-            
-        xticks = [event_onset, ((mid_point-event_onset)/2)+event_onset, mid_point, ((end_sample-mid_point)/2)+mid_point, end_sample]
-        ax.set_xticks(xticks)
-        ax.set_xticklabels([0, self.pupil_step_lim[t][1]*.25, self.pupil_step_lim[t][1]*.5, self.pupil_step_lim[t][1]*.75, self.pupil_step_lim[t][1]])
-        ax.set_ylim(ylim_feed)
-        ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
-        ax.set_xlabel('Time from feedback (s)')
-        ax.set_ylabel('r (Spearman)')
-        # ax.set_title(time_locked)
-        ax.legend(loc='lower right')
-        
-        # whole figure format
-        sns.despine(offset=10, trim=True)
-        plt.tight_layout()
-        fig.savefig(os.path.join(self.figure_folder,'{}_evoked_correlation.pdf'.format(self.exp)))
-        
-        #######################
-        # Model IVs split by Error and Correct
-        #######################
-        for iv in ['model_i', 'model_H', 'model_D']:
-        
-            fig = plt.figure(figsize=(4,2))
-            ax = fig.add_subplot(111)
-            t = 0
-            time_locked = 'feed_locked'
-            xticklabels = ['Error', 'Correct']
-            colorsts = ['red', 'blue']
-            alpha_fills = [0.2,0.2] # fill
-            alpha_lines = [1, 1]
-        
             kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
             # determine time points x-axis given sample rate
             event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
             end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
             mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
+                
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
         
-            save_conds = []
-            # plot time series
-            for i, cond in enumerate(['error', 'correct']):
-            
+            for i,iv in enumerate(ivs):
                 # Compute means, sems across group
-                COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, cond, iv)), float_precision='high')
+                COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, 'all_trials', iv)), float_precision='high')
                 COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
 
-                TS = np.array(COND.T)
-                self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
-                save_conds.append(TS) # for stats
-                # single condition against 0
-                self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1+i, color=colorsts[i], ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
-            
-            # test difference
-            self.cluster_sig_bar_1samp(array=np.subtract(save_conds[1], save_conds[0]), x=pd.Series(range(TS.shape[-1])), yloc=3, color='purple', ax=ax, threshold=0.05, nrand=5000, cluster_correct=False)
-            self.cluster_sig_bar_1samp(array=np.subtract(save_conds[1], save_conds[0]), x=pd.Series(range(TS.shape[-1])), yloc=4, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
-            
+                # plot time series
+                TS = np.array(COND.T) # flip so subjects are rows
+                self.tsplot(ax, TS, color=colors[i], label=labels[i])
+                try:
+                    self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1+i, color=colors[i], ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)           
+                except:
+                    shell()
             # set figure parameters
             ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
             ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
@@ -1728,19 +1721,84 @@ class higherLevel(object):
                 tw_end = int(event_onset + (twi[1]*self.sample_rate))
                 ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
             
-            xticks = [event_onset, ((mid_point-event_onset)/2)+event_onset, mid_point, ((end_sample-mid_point)/2)+mid_point, end_sample]
+            xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
             ax.set_xticks(xticks)
-            ax.set_xticklabels([0, self.pupil_step_lim[t][1]*.25, self.pupil_step_lim[t][1]*.5, self.pupil_step_lim[t][1]*.75, self.pupil_step_lim[t][1]])
-            ax.set_ylim(ylim_feed)
+            ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
+            # ax.set_ylim(ylim_feed)
             ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
-            ax.set_xlabel('Time from feedback (s)')
+            ax.set_xlabel('Time from {} (s)'.format(time_locked))
             ax.set_ylabel('r')
-            ax.set_title(iv)
-            ax.legend()
+            # ax.set_title(time_locked)
+            ax.legend(loc='lower right')
+        
             # whole figure format
             sns.despine(offset=10, trim=True)
             plt.tight_layout()
-            fig.savefig(os.path.join(self.figure_folder,'{}_evoked_correlation_{}.pdf'.format(self.exp, iv)))
+            fig.savefig(os.path.join(self.figure_folder,'{}_evoked_correlation.pdf'.format(self.exp)))
+        
+        #######################
+        # Model IVs split by Error and Correct
+        #######################
+        for iv in ['model_i', 'model_H', 'model_D']:
+            fig = plt.figure(figsize=(8,2))
+            
+            for t,time_locked in enumerate(self.time_locked):
+                ax = fig.add_subplot(1,2,t+1)
+            
+                xticklabels = ['Error', 'Correct']
+                colorsts = ['red', 'blue']
+                alpha_fills = [0.2,0.2] # fill
+                alpha_lines = [1, 1]
+        
+                kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
+                # determine time points x-axis given sample rate
+                event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
+                end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
+                mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
+        
+                save_conds = []
+                # plot time series
+                for i, cond in enumerate(['error', 'correct']):
+            
+                    # Compute means, sems across group
+                    COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_correlation_{}_{}.csv'.format(self.exp, time_locked, cond, iv)), float_precision='high')
+                    COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+
+                    TS = np.array(COND.T)
+                    self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
+                    save_conds.append(TS) # for stats
+                    # single condition against 0
+                    self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1+i, color=colorsts[i], ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+            
+                # test difference
+                self.cluster_sig_bar_1samp(array=np.subtract(save_conds[1], save_conds[0]), x=pd.Series(range(TS.shape[-1])), yloc=3, color='purple', ax=ax, threshold=0.05, nrand=5000, cluster_correct=False)
+                self.cluster_sig_bar_1samp(array=np.subtract(save_conds[1], save_conds[0]), x=pd.Series(range(TS.shape[-1])), yloc=4, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+            
+                # set figure parameters
+                ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
+                ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+        
+                # Shade all time windows of interest in grey, will be different for events
+                for twi in self.pupil_time_of_interest:
+                    tw_begin = int(event_onset + (twi[0]*self.sample_rate))
+                    tw_end = int(event_onset + (twi[1]*self.sample_rate))
+                    ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+            
+                xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
+                ax.set_xticks(xticks)
+                ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
+                ax.set_ylim(ylim_feed)
+                ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+                ax.set_xlabel('Time from {} (s)'.format(time_locked))
+                ax.set_ylabel('r')
+                ax.set_title(iv)
+                ax.legend()
+                # whole figure format
+                sns.despine(offset=10, trim=True)
+                plt.tight_layout()
+                fig.savefig(os.path.join(self.figure_folder,'{}_evoked_correlation_{}.pdf'.format(self.exp, iv)))
         print('success: plot_pupil_information_regression_evoked')
         
 
@@ -1769,11 +1827,11 @@ class higherLevel(object):
             ######## CORRECT x FREQUENCY ########
             '''
             # MEANS subject x bin x tone x congruent
-            DFOUT = DF.groupby(['subject','correct',self.freq_cond])[pupil_dv].mean()
+            DFOUT = DF.groupby(['subject', 'correct', 'frequency'])[pupil_dv].mean()
             DFOUT.to_csv(os.path.join(self.averages_folder,'{}_correct-frequency_{}.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # FOR PLOTTING
 
             # save for RMANOVA format
-            DFANOVA =  DFOUT.unstack([self.freq_cond,'correct',]) 
+            DFANOVA =  DFOUT.unstack(['frequency', 'correct',]) 
             print(DFANOVA.columns)
             DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
             DFANOVA.to_csv(os.path.join(self.jasp_folder,'{}_correct-frequency_{}_rmanova.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # for stats
@@ -1794,10 +1852,10 @@ class higherLevel(object):
         ######## FREQUENCY ########
         '''
         for pupil_dv in ['model_i', 'model_H', 'model_D']: # mean accuracy
-            DFOUT = DF.groupby(['subject',self.freq_cond])[pupil_dv].mean()
+            DFOUT = DF.groupby(['subject', 'frequency'])[pupil_dv].mean()
             DFOUT.to_csv(os.path.join(self.averages_folder,'{}_frequency_{}.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # For descriptives
             # save for RMANOVA format
-            DFANOVA =  DFOUT.unstack([self.freq_cond]) 
+            DFANOVA =  DFOUT.unstack(['frequency']) 
             print(DFANOVA.columns)
             DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
             DFANOVA.to_csv(os.path.join(self.jasp_folder,'{}_frequency_{}_rmanova.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # for stats
@@ -1833,8 +1891,7 @@ class higherLevel(object):
             subject_array = np.zeros((len(self.subjects), np.max(DFIN['trial_num'])+1))
         
             for s, subj in enumerate(self.subjects):
-                this_subj = int(''.join(filter(str.isdigit, subj)))
-                this_df = DFIN[DFIN['subject']==this_subj].copy()        
+                this_df = DFIN[DFIN['subject']==subj].copy()        
                 subject_array[s,:] = np.ravel(this_df[[pupil_dv]])
                             
             self.tsplot(ax, subject_array, color=colors[dvi], label=ylabels[dvi])
@@ -1847,9 +1904,9 @@ class higherLevel(object):
             subplot_counter += 1
         
         # PLOT ACROSS FREQUENCY CONDITIONS
-        factor = self.freq_cond
-        xlabel = 'Letter-color frequency'
-        xticklabels = ['20%','40%','80%'] 
+        factor = 'frequency'
+        xlabel = 'Frequency'
+        xticklabels = ['high','low'] 
         bar_width = 0.7
         xind = np.arange(len(xticklabels))
         
@@ -1857,7 +1914,7 @@ class higherLevel(object):
             
             ax = fig.add_subplot(3, 3, subplot_counter) # 1 subplot per bin window
 
-            DFIN = pd.read_csv(os.path.join(self.averages_folder,'{}_{}_{}.csv'.format(self.exp,'frequency',pupil_dv)), float_precision='high')
+            DFIN = pd.read_csv(os.path.join(self.averages_folder,'{}_{}_{}.csv'.format(self.exp, 'frequency', pupil_dv)), float_precision='high')
             DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
             
             # Group average 
@@ -1883,12 +1940,12 @@ class higherLevel(object):
             ax.set_xlabel(xlabel)
             ax.set_xticks(xind)
             ax.set_xticklabels(xticklabels)
-            if pupil_dv == 'model_D':
-                ax.set_ylim([0.004, 0.007])
-            if pupil_dv == 'model_i':
-                ax.set_ylim([4.9, 5.2])
-            if pupil_dv == 'model_H':
-                ax.set_ylim([4.5, 4.75])
+            # if pupil_dv == 'model_D':
+            #     ax.set_ylim([0.004, 0.007])
+            # if pupil_dv == 'model_i':
+            #     ax.set_ylim([4.9, 5.2])
+            # if pupil_dv == 'model_H':
+            #     ax.set_ylim([4.5, 4.75])
             subplot_counter += 1
             
         # whole figure format
