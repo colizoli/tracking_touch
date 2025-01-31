@@ -377,7 +377,7 @@ class higherLevel(object):
                     B['pupil_baseline_{}'.format(baselines_time_locked)] = np.array(this_baseline)
                         
                     # load evoked pupil file (all trials)
-                    P = pd.read_csv(os.path.join(self.project_directory,subj,'sub-{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj, self.exp, time_locked)), float_precision='high') 
+                    P = pd.read_csv(os.path.join(self.project_directory, 'sub-{}'.format(subj), 'sub-{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj, self.exp, time_locked)), float_precision='high') 
                     P = P.loc[:, ~P.columns.str.contains('^Unnamed')] # remove all unnamed columns
                     P = np.array(P)
 
@@ -771,8 +771,9 @@ class higherLevel(object):
             fig.savefig(os.path.join(self.figure_folder,'{}_{}.pdf'.format(self.exp, pupil_dv)))
         print('success: plot_behavior_blocks')
     
-    def plot_behavior(self, ):
-        """Plot the group level means of accuracy and RT per conditions with 2 levels.
+
+    def plot_1way_effects(self, ):
+        """Plot all the 1-way effects at group level
 
         Notes
         -----
@@ -780,8 +781,8 @@ class higherLevel(object):
         x-axis is condition.
         Figure output as PDF in figure folder.
         """
-        dvs = ['correct', 'RT']
-        ylabels = ['Accuracy', 'RT (s)']
+        dvs = ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']
+        ylabels = ['Accuracy', 'RT (s)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', ]
         conditions = ['frequency', 'touch1', 'touch2', 'finger_distance']
         xticklabels = [
             ['high','low'],
@@ -826,6 +827,7 @@ class higherLevel(object):
                     ax.plot(xind, s, linestyle='-', marker='o', markersize=3, fillstyle='full', color='black', alpha=.2) # marker, line, black
                     
                 # set figure parameters
+                ax.set_title(pupil_dv)
                 ax.set_ylabel(ylabels[dvi])
                 ax.set_xlabel(factor)
                 ax.set_xticks(xind)
@@ -833,15 +835,80 @@ class higherLevel(object):
                 if pupil_dv == 'correct':
                     ax.set_ylim([0.0,1.])
                     ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.2))
-                else:
+                elif pupil_dv == 'RT':
                     ax.set_ylim([0.2,1.8]) #RT
                     ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.4))
 
                 sns.despine(offset=10, trim=True)
                 plt.tight_layout()
                 fig.savefig(os.path.join(self.figure_folder,'{}_{}_{}.pdf'.format(self.exp, factor, pupil_dv)))
-        print('success: plot_behav')
+        print('success: plot_1way_effects')
         
+    
+    def plot_2way_effects(self,):
+        """Plot the interaction effects at the group level.
+        
+        Notes
+        -----
+        4 figures: per DV
+        GROUP LEVEL DATA
+        Separate lines for correct, x-axis is frequency conditions.
+        """
+        ylim = [ 
+            [-1.5,6.5], # t1
+            [-3.25,2.25], # t2
+            [-3, 5], # baseline
+            [0.6,1.5] # RT
+        ]
+        tick_spacer = [1, 1, 2, .2]
+        
+        dvs = ['pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked', 'RT']
+        ylabels = ['Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'RT (s)']
+        factor = ['frequency','correct'] 
+        xlabel = 'Frequency'
+        xticklabels = ['high','low'] 
+        labels = ['Error','Correct']
+        colors = ['red','blue'] 
+        
+        xind = np.arange(len(xticklabels))
+        dot_offset = [0.05,-0.05]
+                
+        for dvi,pupil_dv in enumerate(dvs):
+            
+            fig = plt.figure(figsize=(2, 2))
+            ax = fig.add_subplot(111)
+            
+            DFIN = pd.read_csv(os.path.join(self.averages_folder, '{}_correct-frequency_{}.csv'.format(self.exp, pupil_dv)), float_precision='high')
+            DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
+            
+            # Group average per BIN WINDOW
+            GROUP = pd.DataFrame(DFIN.groupby(factor)[pupil_dv].agg(['mean', 'std']).reset_index())
+            GROUP['sem'] = np.true_divide(GROUP['std'], np.sqrt(len(self.subjects)))
+            print(GROUP)
+            
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+        
+            # # plot line graph
+            for x in[0,1]: # split by error, correct
+                D = GROUP[GROUP['correct']==x]
+                print(D)
+                ax.errorbar(xind, np.array(D['mean']), yerr=np.array(D['sem']), marker='o', markersize=3, fmt='-', elinewidth=1, label=labels[x], capsize=3, color=colors[x], alpha=1)
+
+            # set figure parameters
+            ax.set_title('{}'.format(pupil_dv))                
+            ax.set_ylabel(ylabels[dvi])
+            ax.set_xlabel(xlabel)
+            ax.set_xticks(xind)
+            ax.set_xticklabels(xticklabels)
+            # ax.set_ylim(ylim[dvi])
+            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer[dvi]))
+            # ax.legend()
+
+            sns.despine(offset=10, trim=True)
+            plt.tight_layout()
+            fig.savefig(os.path.join(self.figure_folder, '{}_correct-frequency_{}_lines.pdf'.format(self.exp, pupil_dv)))
+        print('success: plot_2way_effects')
+    
     
     def dataframe_evoked_pupil_higher(self):
         """Compute evoked pupil responses.
@@ -932,7 +999,7 @@ class higherLevel(object):
             i=0
             TS = np.array(COND.iloc[:,-kernel:]) # index from back to avoid extra unnamed column pandas
             self.tsplot(ax, TS, color='k', label=xticklabels[i])
-            # self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+            self.cluster_sig_bar_1samp(array=TS, x=pd.Series(range(TS.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
     
             # set figure parameters
             ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
@@ -1029,12 +1096,76 @@ class higherLevel(object):
             ax.set_xlabel('Time from {} (s)'.format(time_locked))
             ax.set_ylabel('Pupil response\n(% signal change)')
             ax.set_title(factor)
-            # ax.legend(loc='best')
+            ax.legend(loc='best')
             # whole figure format
             sns.despine(offset=10, trim=True)
             plt.tight_layout()
             fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
         
+        #######################
+        # FREQUENCY
+        #######################
+        fig = plt.figure(figsize=(8,2))
+        for t,time_locked in enumerate(self.time_locked):
+            ax = fig.add_subplot(1,2,t+1)
+            csv_name = 'frequency'
+            factor = 'frequency'
+
+            kernel = int((self.pupil_step_lim[t][1]-self.pupil_step_lim[t][0])*self.sample_rate) # length of evoked responses
+            # determine time points x-axis given sample rate
+            event_onset = int(abs(self.pupil_step_lim[t][0]*self.sample_rate))
+            end_sample = int((self.pupil_step_lim[t][1] - self.pupil_step_lim[t][0])*self.sample_rate)
+            mid_point = int(np.true_divide(end_sample-event_onset,2) + event_onset)
+
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+
+            # Compute means, sems across group
+            COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,csv_name)), float_precision='high')
+            COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
+                    
+            xticklabels = ['High','Low']
+            colorsts = ['lightseagreen','lightseagreen',]
+            alpha_fills = [0.4, 0.1] # fill
+            alpha_lines = [1.0, 0.3]
+            save_conds = []
+        
+            # plot time series
+            for i,x in enumerate(np.unique(COND[factor])):
+                TS = COND[COND[factor]==x] # select current condition data only
+                TS = np.array(TS.iloc[:,-kernel:])
+                self.tsplot(ax, TS, color=colorsts[i], label=xticklabels[i], alpha_fill=alpha_fills[i], alpha_line=alpha_lines[i])
+                save_conds.append(TS) # for stats
+        
+            # stats        
+            ### COMPUTE INTERACTION TERM AND TEST AGAINST 0!
+            pe_difference = save_conds[0]-save_conds[1]
+            self.cluster_sig_bar_1samp(array=pe_difference, x=pd.Series(range(pe_difference.shape[-1])), yloc=1, color='black', ax=ax, threshold=0.05, nrand=5000, cluster_correct=True)
+
+            # set figure parameters
+            ax.axvline(int(abs(self.pupil_step_lim[t][0]*self.sample_rate)), lw=1, alpha=1, color = 'k') # Add vertical line at t=0
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+        
+            # Shade all time windows of interest in grey, will be different for events
+            for twi in self.pupil_time_of_interest:       
+                tw_begin = int(event_onset + (twi[0]*self.sample_rate))
+                tw_end = int(event_onset + (twi[1]*self.sample_rate))
+                ax.axvspan(tw_begin,tw_end, facecolor='k', alpha=0.1)
+
+            xticks = [event_onset, event_onset+(500*1), event_onset+(500*2), event_onset+(500*3), event_onset+(500*4), event_onset+(500*5), event_onset+(500*6), event_onset+(500*7)]
+            ax.set_xticks(xticks)
+            ax.set_xticklabels([0, self.pupil_step_lim[t][1]-(.5*6), self.pupil_step_lim[t][1]-(.5*5), self.pupil_step_lim[t][1]-(.5*4), self.pupil_step_lim[t][1]-(.5*3), self.pupil_step_lim[t][1]-(.5*2),  self.pupil_step_lim[t][1]-(.5*1), self.pupil_step_lim[t][1]])
+  
+            # ax.set_ylim(ylim_feed)
+            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer))
+            ax.set_xlabel('Time from {} (s)'.format(time_locked))
+            ax.set_ylabel('Pupil response\n(% signal change)')
+            ax.set_title(factor)
+            ax.legend(loc='best')
+            # whole figure format
+            sns.despine(offset=10, trim=True)
+            plt.tight_layout()
+            fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
+            
         #######################
         # TOUCH1 and TOUCH2
         #######################
@@ -1057,10 +1188,10 @@ class higherLevel(object):
                 COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp, time_locked, csv_name)), float_precision='high')
                 COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
                     
-                xticklabels = ['1','2','3']
-                colorsts = ['indigo','indigo','indigo']
-                alpha_fills = [0.2,0.2,0.2] # fill
-                alpha_lines = [.3,.6,1.]
+                xticklabels = ['1', '2', '3']
+                colorsts = ['brown','brown','brown']
+                alpha_fills = [0.2, 0.2, 0.2] # fill
+                alpha_lines = [0.3, 0.6, 1.0]
                 save_conds = []
         
                 # plot time series
@@ -1130,10 +1261,10 @@ class higherLevel(object):
             COND = pd.read_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp, time_locked, csv_name)), float_precision='high')
             COND = COND.loc[:, ~COND.columns.str.contains('^Unnamed')] # remove all unnamed columns
                 
-            xticklabels = ['1','2','3']
-            colorsts = ['orange','orange','orange']
-            alpha_fills = [0.2,0.2,0.2] # fill
-            alpha_lines = [.3,.6,1.]
+            xticklabels = ['1', '2', '3']
+            colorsts = ['palevioletred','palevioletred','palevioletred']
+            alpha_fills = [0.2, 0.2, 0.2] # fill
+            alpha_lines = [0.3, 0.6, 1.0]
             save_conds = []
     
             # plot time series
@@ -1217,7 +1348,7 @@ class higherLevel(object):
             conditions = np.select(conditions, values) # don't add as column to time series otherwise it gets plotted
             ########
                     
-            xticklabels = ['Error 1', 'Correct 1', 'Error 2', 'Correct 2']
+            xticklabels = ['Error High', 'Correct High', 'Error Low', 'Correct Low']
             colorsts = ['r', 'b', 'r', 'b']
             alpha_fills = [0.2, 0.2, 0.1, 0.1] # fill
             alpha_lines = [1, 1, 0.8, 0.8]
@@ -1262,71 +1393,6 @@ class higherLevel(object):
             fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
         print('success: plot_evoked_pupil')
         
-        
-    def plot_phasic_pupil_pe(self,):
-        """Plot the phasic pupil target_locked interaction frequency and accuracy in each trial bin window.
-        
-        Notes
-        -----
-        4 figures: per DV
-        GROUP LEVEL DATA
-        Separate lines for correct, x-axis is frequency conditions.
-        """
-        ylim = [ 
-            [-1.5,6.5], # t1
-            [-3.25,2.25], # t2
-            [-3, 5], # baseline
-            [0.6,1.5] # RT
-        ]
-        tick_spacer = [1, 1, 2, .2]
-        
-        dvs = ['pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked', 'RT']
-        ylabels = ['Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'RT (s)']
-        factor = ['frequency','correct'] 
-        xlabel = 'Frequency'
-        xticklabels = ['high','low'] 
-        labels = ['Error','Correct']
-        colors = ['red','blue'] 
-        
-        xind = np.arange(len(xticklabels))
-        dot_offset = [0.05,-0.05]
-                
-        for dvi,pupil_dv in enumerate(dvs):
-            
-            fig = plt.figure(figsize=(2, 2))
-            ax = fig.add_subplot(111)
-            
-            DFIN = pd.read_csv(os.path.join(self.averages_folder, '{}_correct-frequency_{}.csv'.format(self.exp, pupil_dv)), float_precision='high')
-            DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
-            
-            # Group average per BIN WINDOW
-            GROUP = pd.DataFrame(DFIN.groupby(factor)[pupil_dv].agg(['mean', 'std']).reset_index())
-            GROUP['sem'] = np.true_divide(GROUP['std'], np.sqrt(len(self.subjects)))
-            print(GROUP)
-            
-            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-        
-            # # plot line graph
-            for x in[0,1]: # split by error, correct
-                D = GROUP[GROUP['correct']==x]
-                print(D)
-                ax.errorbar(xind, np.array(D['mean']), yerr=np.array(D['sem']), marker='o', markersize=3, fmt='-', elinewidth=1, label=labels[x], capsize=3, color=colors[x], alpha=1)
-
-            # set figure parameters
-            ax.set_title('{}'.format(pupil_dv))                
-            ax.set_ylabel(ylabels[dvi])
-            ax.set_xlabel(xlabel)
-            ax.set_xticks(xind)
-            ax.set_xticklabels(xticklabels)
-            # ax.set_ylim(ylim[dvi])
-            # ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer[dvi]))
-            # ax.legend()
-
-            sns.despine(offset=10, trim=True)
-            plt.tight_layout()
-            fig.savefig(os.path.join(self.figure_folder, '{}_correct-frequency_{}_lines.pdf'.format(self.exp, pupil_dv)))
-        print('success: plot_phasic_pupil_pe')
-    
     
     def individual_differences(self,):
        """Correlate frequency effect in pupil DV with frequency effect in accuracy across participants, then plot.

@@ -149,26 +149,26 @@ if higher_level:
         time_locked             = ['resp_locked', 'feed_locked'],
         pupil_step_lim          = [pupil_step_lim[2], pupil_step_lim[3]],                
         baseline_window         = baseline_window,              
-        pupil_time_of_interest  = [[0.75,1.75]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
+        pupil_time_of_interest  = [[3.0,3.5]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
         )
     # higherLevel.higherlevel_get_phasics()       # add baselines, computes phasic pupil for each subject (adds to log files
     # higherLevel.create_subjects_dataframe()     # concantenates all subjects, flags missed trials, saves higher level data frame
     ''' Note: the functions after this are using: task-tracking_touch_subjects.csv
     '''
-    # higherLevel.code_stimuli()                  # adds columns for unique touch-pairs, and frequency and finger-distance conditions
     # higherLevel.calculate_actual_frequencies()  # calcuate the actual frequencies of the touch pairs
+    # higherLevel.code_stimuli()                  # adds columns for unique touch-pairs, and frequency and finger-distance conditions
     # higherLevel.average_conditions()            # group level data frames for all main effects + interaction
     # higherLevel.plot_behavior_blocks()          # boxplots for accuracy and RT per block
-    # higherLevel.plot_behavior()                 # simple bar plots of accuracy and RT for 1-way effects
+    # higherLevel.plot_1way_effects()             # simple bar plots for 1-way effects
+    # higherLevel.plot_2way_effects()             # plots the interaction effects
     
     ''' Evoked pupil response
     '''
     # higherLevel.dataframe_evoked_pupil_higher()  # per event of interest, outputs one dataframe for all trials for all subject on pupil time series
-    # higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
+    higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
     
     ''' Phasic time-window averaged pupil response
     '''
-    # higherLevel.plot_phasic_pupil_pe()         # plots the interaction between the frequency and accuracy
     # higherLevel.individual_differences()       # individual differences correlation between behavior and pupil
     
     
