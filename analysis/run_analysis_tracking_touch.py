@@ -47,8 +47,9 @@ experiment_name = 'task-touch_prediction' # 3AFC Decision Task
 # -----------------------
 # Participants
 # -----------------------
-ppns     = pd.read_csv(os.path.join(home_dir, 'analysis', 'participants_tracking_touch.csv'))
-subjects = ['sub-{}'.format(s) for s in ppns['subject']]
+ppns = pd.read_csv(os.path.join(home_dir, 'analysis', 'participants_tracking_touch.csv'))
+# subjects = ['sub-{}'.format(s) for s in ppns['subject']]
+subjects = ppns['subject']
 
 # -----------------------
 # Copy 'sourcedata' directory to 'derivatives' directory 
@@ -61,6 +62,7 @@ else:
 
 # copy 'sourcedata/sub-xxx' to 'derivatives/sub-xxx' if it doesn't exist:    
 for s,subj in enumerate(subjects):
+    subj = 'sub-{}'.format(subj)
     this_source_dir = os.path.join(source_dir, subj)
     this_data_dir = os.path.join(data_dir, subj)
     if not os.path.isdir(this_data_dir):
@@ -143,38 +145,40 @@ if higher_level:
         experiment_name         = experiment_name,
         project_directory       = data_dir, 
         sample_rate             = sample_rate,
-        time_locked             = ['stim_locked', 'resp_locked', 'feed_locked'],
-        pupil_step_lim          = [pupil_step_lim[1], pupil_step_lim[2], pupil_step_lim[3]],                
+        time_locked             = ['resp_locked', 'feed_locked'],
+        pupil_step_lim          = [pupil_step_lim[2], pupil_step_lim[3]],                
         baseline_window         = baseline_window,              
-        pupil_time_of_interest  = [[0.75,1.25], [3.0,3.5]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
+        pupil_time_of_interest  = [[0.75,1.75]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
         )
-    # higherLevel.create_subjects_dataframe()       # add baselines, concantenates all subjects, flags missed trials, saves higher level data frame
-    ''' Note: the functions after this are using: task-tracking_touch.csv
+    # higherLevel.higherlevel_get_phasics()       # add baselines, computes phasic pupil for each subject (adds to log files
+    # higherLevel.create_subjects_dataframe()     # concantenates all subjects, flags missed trials, saves higher level data frame
+    ''' Note: the functions after this are using: task-tracking_touch_subjects.csv
     '''
+    # higherLevel.code_stimuli()                  # adds columns for unique touch-pairs, and frequency and finger-distance conditions
+    # higherLevel.calculate_actual_frequencies()  # calcuate the actual frequencies of the touch pairs
+    # higherLevel.average_conditions()            # group level data frames for all main effects + interaction
+    # higherLevel.plot_behavior_blocks()          # boxplots for accuracy and RT per block
+    higherLevel.plot_behavior()                 # simple bar plots of accuracy and RT per block and overall mean
     
     ''' Evoked pupil response
     '''
-    # higherLevel.dataframe_evoked_pupil_higher()  # per event of interest, outputs one dataframe or np.array? for all trials for all subject on pupil time series
+    # higherLevel.dataframe_evoked_pupil_higher()  # per event of interest, outputs one dataframe for all trials for all subject on pupil time series
     # higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
     
-    
-    # higherLevel.average_conditions()           # group level data frames for all main effects + interaction
+    ''' Phasic time-window averaged pupil response
+    '''
     # higherLevel.plot_phasic_pupil_pe()         # plots the interaction between the frequency and accuracy
-    # higherLevel.plot_behavior()                # simple bar plots of accuracy and RT per mapping condition
     ## higherLevel.individual_differences()       # individual differences correlation between behavior and pupil
     
 
     
-
-    # higherLevel.higherlevel_get_phasics()       # computes phasic pupil for each subject (adds to log files)
-    # higherLevel.create_subjects_dataframe()       # add baselines, concantenates all subjects, flags missed trials, saves higher level data frame
     
     ''' Ideal learner model
     '''
     # higherLevel.information_theory_estimates()
     # higherLevel.pupil_information_correlation_matrix()
     # higherLevel.dataframe_evoked_correlation()
-    # higherLevel.plot_pupil_information_regression_evoked()
+    # higherLevel.plot_information_regression_evoked()
     # higherLevel.average_information_conditions()
     # higherLevel.plot_information()
     

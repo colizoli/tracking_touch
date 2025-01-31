@@ -1104,11 +1104,14 @@ class trials(object):
         
         Notes
         -----
+        Response-locked baselines are pre-stimulus, not pre-response!
+        Feedback-locked baselines are pre-feedback.
+        
         Saves baselines per trial in separate file.
         """
         for t,time_locked in enumerate(self.time_locked):
-                        
-            if not 'resp' in time_locked:
+            
+            if ('feed' in time_locked) or ('stim' in time_locked):
                 
                 pupil_step_lim = self.pupil_step_lim[t]
 
@@ -1134,6 +1137,7 @@ class trials(object):
                 print('subject {}, {} save_baselines'.format(self.subject,time_locked))
             print('sucess: save_baselines')
         
+        
     def event_related_baseline_correction(self):
         """Baseline correction on evoked responses, per trial. 
         
@@ -1142,28 +1146,30 @@ class trials(object):
         'resp_locked' corrected with 'stim' baseline
         """
         for t,time_locked in enumerate(self.time_locked):
+            
+            if not 'trial' in time_locked:
                         
-            if 'resp' in time_locked:
-                time_locked_baselines = 'stim_locked'
-            else:
-                time_locked_baselines = time_locked            
+                if 'resp' in time_locked:
+                    time_locked_baselines = 'stim_locked'
+                else:
+                    time_locked_baselines = time_locked            
         
-            pupil_step_lim = self.pupil_step_lim[t]
+                pupil_step_lim = self.pupil_step_lim[t]
         
-            # evoked dataframe
-            P = pd.read_csv(os.path.join(self.project_directory,'{}_{}_evoked.csv'.format(self.alias,time_locked)))
-            P.drop(['Unnamed: 0'],axis=1,inplace=True)
-            P = np.array(P)
+                # evoked dataframe
+                P = pd.read_csv(os.path.join(self.project_directory, '{}_{}_evoked.csv'.format(self.alias, time_locked)))
+                P.drop(['Unnamed: 0'],axis=1,inplace=True)
+                P = np.array(P)
         
-            # baselines dataframe
-            B = pd.read_csv(os.path.join(self.project_directory,'{}_{}_baselines.csv'.format(self.alias,time_locked_baselines))) 
-            B.drop(['Unnamed: 0'],axis=1,inplace=True)
-            B = np.array(B)
+                # baselines dataframe
+                B = pd.read_csv(os.path.join(self.project_directory, '{}_{}_baselines.csv'.format(self.alias, time_locked_baselines))) 
+                B.drop(['Unnamed: 0'],axis=1,inplace=True)
+                B = np.array(B)
         
-            P = P-B
-            # save baseline corrected events and baseline means too!
-            P = pd.DataFrame(P)
-            P.to_csv(os.path.join(self.project_directory,'{}_{}_evoked_basecorr.csv'.format(self.alias,time_locked)), float_format='%.16f')
+                P = P-B
+                # save baseline corrected events and baseline means too!
+                P = pd.DataFrame(P)
+                P.to_csv(os.path.join(self.project_directory, '{}_{}_evoked_basecorr.csv'.format(self.alias, time_locked)), float_format='%.16f')
 
-            print('subject {}, {} events baseline corrected'.format(self.subject,time_locked))
+                print('subject {}, {} events baseline corrected'.format(self.subject, time_locked))
         print('sucess: event_related_baseline_correction')

@@ -350,8 +350,9 @@ class higherLevel(object):
         Overwrites original log file (this_log).
         """
         for s,subj in enumerate(self.subjects):
-            this_log = os.path.join(self.project_directory, subj, '{}_{}_beh.csv'.format(subj,self.exp)) # derivatives folder
+            this_log = os.path.join(self.project_directory,  'sub-{}'.format(subj), 'sub-{}_{}_events.csv'.format(subj, self.exp)) # derivatives folder
             B = pd.read_csv(this_log, float_precision='high') # behavioral file
+            
             ### DROP EXISTING PHASICS COLUMNS TO PREVENT OLD DATA
             try: 
                 B = B.loc[:, ~B.columns.str.contains('^Unnamed')] # remove all unnamed columns
@@ -365,9 +366,18 @@ class higherLevel(object):
                 pupil_step_lim = self.pupil_step_lim[t] # kernel size is always the same for each event type
                 
                 for twi,pupil_time_of_interest in enumerate(self.pupil_time_of_interest): # multiple time windows to average
-                
+                    
+                    if 'resp' in time_locked:
+                        baselines_time_locked = 'stim_locked'
+                    else:
+                        baselines_time_locked = time_locked
+                    # open baseline pupil to add to dataframes as well
+                    this_baseline = pd.read_csv(os.path.join(self.project_directory,  'sub-{}'.format(subj), 'sub-{}_{}_recording-eyetracking_physio_{}_baselines.csv'.format(subj, self.exp, baselines_time_locked)), float_precision='high')
+                    this_baseline = this_baseline.loc[:, ~this_baseline.columns.str.contains('^Unnamed')] # remove all unnamed columns
+                    B['pupil_baseline_{}'.format(baselines_time_locked)] = np.array(this_baseline)
+                        
                     # load evoked pupil file (all trials)
-                    P = pd.read_csv(os.path.join(self.project_directory,subj,'{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj,self.exp,time_locked)), float_precision='high') 
+                    P = pd.read_csv(os.path.join(self.project_directory,subj,'sub-{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj, self.exp, time_locked)), float_precision='high') 
                     P = P.loc[:, ~P.columns.str.contains('^Unnamed')] # remove all unnamed columns
                     P = np.array(P)
 
@@ -399,21 +409,14 @@ class higherLevel(object):
         -----
         Flag missing trials from concantenated dataframe.
         Output in dataframe folder: task-experiment_name_subjects.csv
-        Merge with actual frequencies
         """
         DF = pd.DataFrame()
         
         # loop through subjects, get behavioral log files
         for s,subj in enumerate(self.subjects):
             
-            this_data = pd.read_csv(os.path.join(self.project_directory, subj, '{}_{}_events.csv'.format(subj,self.exp)), float_precision='high')
+            this_data = pd.read_csv(os.path.join(self.project_directory, 'sub-{}'.format(subj), 'sub-{}_{}_events.csv'.format(subj, self.exp)), float_precision='high')
             this_data = this_data.loc[:, ~this_data.columns.str.contains('^Unnamed')] # remove all unnamed columns
-            
-            for t,time_locked in enumerate(self.time_locked):
-            # open baseline pupil to add to dataframes as well
-                this_baseline = pd.read_csv(os.path.join(self.project_directory, subj, '{}_{}_recording-eyetracking_physio_{}_baselines.csv'.format(subj, self.exp, time_locked)), float_precision='high')
-                this_baseline = this_baseline.loc[:, ~this_baseline.columns.str.contains('^Unnamed')] # remove all unnamed columns
-                this_data['pupil_baseline_{}'.format(time_locked)] = np.array(this_baseline)
             
             ###############################
             # flag missing trials
@@ -439,6 +442,78 @@ class higherLevel(object):
         #####################
         print('success: higherlevel_dataframe')
         
+
+    def code_stimuli(self, ):
+        """Add a new column in the subjects dataframe to give each letter-color pair a unique identifier.
+        
+        Notes
+        -----
+        3 fingers ^ 2 touches -> 9 different letter-color pair combinations.
+        
+        New column name is "touch_pair"
+        """
+        fn_in = os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp))
+        df_in = pd.read_csv(fn_in, float_precision='high')
+        
+        # make new column to give each touch1-touch2 combination a unique identifier (0 - 8)        
+        mapping = [
+            (df_in['touch1'] == 1) & (df_in['touch2'] == 1), # 0 LOW NONE
+            (df_in['touch1'] == 1) & (df_in['touch2'] == 2), # 1 HIGH SHORT
+            (df_in['touch1'] == 1) & (df_in['touch2'] == 3), # 2 LOW LONG
+            
+            (df_in['touch1'] == 2) & (df_in['touch2'] == 1), # 3 HIGH SHORT
+            (df_in['touch1'] == 2) & (df_in['touch2'] == 2), # 4 LOW NONE
+            (df_in['touch1'] == 2) & (df_in['touch2'] == 3), # 5 LOW SHORT
+            
+            (df_in['touch1'] == 3) & (df_in['touch2'] == 1), # 6 LOW LONG
+            (df_in['touch1'] == 3) & (df_in['touch2'] == 2), # 7 LOW SHORT
+            (df_in['touch1'] == 3) & (df_in['touch2'] == 3), # 8 HIGH NONE
+            ]
+        
+        elements = np.arange(9) # also elements is the same as priors (start with 0 so they can be indexed by element)
+        df_in['touch_pair'] = np.select(mapping, elements)
+        
+        # add frequency conditions
+        elements = ['low', 'high', 'low', 'high', 'low', 'low', 'low', 'low', 'high']
+        df_in['frequency'] = np.select(mapping, elements)
+        
+        # add finger distance
+        elements = ['none', 'short', 'long', 'short', 'none', 'short', 'long', 'short', 'none']
+        df_in['finger_distance'] = np.select(mapping, elements)
+        
+        df_in.to_csv(fn_in, float_format='%.16f') # save with new columns
+        print('success: code_stimuli')   
+    
+    
+    def calculate_actual_frequencies(self):
+        """Calculate the actual frequencies of the touch-pairs presented during the task.
+
+        Notes
+        -----
+            The lists per finger were drawn randomly based on a uniform distribution.
+        """
+        
+        ntrials = 189 # per participant
+        
+        DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)))
+        DF['for_counts'] = np.repeat(1,len(DF)) # to count something
+        
+        counts_pairs = pd.DataFrame(DF.groupby(['subject','touch1','touch2'])['for_counts'].count())
+        counts_touch1 = pd.DataFrame(DF.groupby(['subject','touch1'])['for_counts'].count())
+        
+        finger_trials = np.unique(counts_touch1['for_counts'])
+        
+        # calculate as percentage per finger
+        counts_pairs['actual_frequency'] = np.true_divide(counts_pairs['for_counts'],finger_trials)*100
+        counts_pairs.to_csv(os.path.join(self.dataframe_folder,'{}_actual_frequency_pairs.csv'.format(self.exp)))
+        
+        # do again for low-high frequency conditions
+        counts_frequency = pd.DataFrame(DF.groupby(['subject','frequency'])['for_counts'].count())
+        counts_frequency['actual_frequency'] = np.true_divide(counts_frequency['for_counts'], ntrials)*100
+        counts_frequency.to_csv(os.path.join(self.dataframe_folder,'{}_actual_frequency_conditions.csv'.format(self.exp)))
+        
+        print('success: calculate_actual_frequencies')
+        
         
     def average_conditions(self, ):
         """Average the phasic pupil per subject per condition of interest. 
@@ -457,132 +532,160 @@ class higherLevel(object):
         # drop outliers and missing trials
         DF = DF[DF['drop_trial']==0]
         ############################
-        
         '''
-        ######## CORRECT x FREQUENCY x TIME WINDOW ########
+        ######## BLOCK ########
         '''
-        DFOUT = DF.groupby(['subject','correct','touch1']).aggregate({'pupil_feed_locked_t1':'mean', 'pupil_feed_locked_t2':'mean'})
-        # DFOUT.to_csv(os.path.join(self.averages_folder,'{}_correct-touch1-timewindow_{}.csv'.format(self.exp,pupil_dv))) # FOR PLOTTING
-        # save for RMANOVA format
-        DFANOVA =  DFOUT.unstack(['touch1','correct']) 
-        print(DFANOVA.columns)
-        DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
-        DFANOVA.to_csv(os.path.join(self.jasp_folder,'{}_correct-touch1-timewindow_rmanova.csv'.format(self.exp)), float_format='%.16f') # for stats
+        for pupil_dv in ['correct', 'RT']: 
         
-        #interaction accuracy and frequency
-        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_feed_locked_t2']: #interaction accuracy and frequency
-            
-            '''
-            ######## CORRECT x TOUCH1 ########
-            '''
             # MEANS subject x bin x tone x congruent
-            DFOUT = DF.groupby(['subject','correct','touch1'])[pupil_dv].mean()
-            DFOUT.to_csv(os.path.join(self.averages_folder,'{}_correct-touch1_{}.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # FOR PLOTTING
+            DFOUT = DF.groupby(['subject', 'block'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_block_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # FOR PLOTTING
 
             # save for RMANOVA format
-            DFANOVA =  DFOUT.unstack(['touch1','correct',]) 
+            DFANOVA =  DFOUT.unstack(['block']) 
             print(DFANOVA.columns)
             DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
-            DFANOVA.to_csv(os.path.join(self.jasp_folder,'{}_correct-touch1_{}_rmanova.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # for stats
-            '''
-            ######## CORRECT ########
-            '''
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_block_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## CORRECT x FREQUENCY ########
+        '''
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        
             # MEANS subject x bin x tone x congruent
-            DFOUT = DF.groupby(['subject','correct'])[pupil_dv].mean()
-            DFOUT.to_csv(os.path.join(self.averages_folder,'{}_correct_{}.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # FOR PLOTTING
+            DFOUT = DF.groupby(['subject', 'correct', 'frequency'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_correct-frequency_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # FOR PLOTTING
 
             # save for RMANOVA format
-            DFANOVA =  DFOUT.unstack(['correct',]) 
+            DFANOVA =  DFOUT.unstack(['frequency', 'correct',]) 
             print(DFANOVA.columns)
             DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
-            DFANOVA.to_csv(os.path.join(self.jasp_folder,'{}_correct_{}_rmanova.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # for stats
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_correct-frequency_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## BLOCK x CORRECT x FREQUENCY ########
+        '''
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
         
+            # MEANS subject x bin x tone x congruent
+            DFOUT = DF.groupby(['subject', 'block', 'correct', 'frequency'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_block-correct-frequency_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # FOR PLOTTING
+
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['frequency', 'correct', 'block']) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_block-correct-frequency_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## CORRECT ########
+        '''
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        
+            # MEANS subject x bin x tone x congruent
+            DFOUT = DF.groupby(['subject', 'correct'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_correct_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # FOR PLOTTING
+
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['correct']) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_correct_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
         '''
         ######## FREQUENCY ########
         '''
-        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_feed_locked_t2']: # mean accuracy
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
+            DFOUT = DF.groupby(['subject', 'frequency'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_frequency_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['frequency']) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_frequency_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        
+        '''
+        ######## TOUCH1 ########
+        '''
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
             DFOUT = DF.groupby(['subject', 'touch1'])[pupil_dv].mean()
-            DFOUT.to_csv(os.path.join(self.averages_folder,'{}_touch1_{}.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # For descriptives
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_touch1_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
             # save for RMANOVA format
             DFANOVA =  DFOUT.unstack(['touch1']) 
             print(DFANOVA.columns)
             DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
-            DFANOVA.to_csv(os.path.join(self.jasp_folder,'{}_touch1_{}_rmanova.csv'.format(self.exp,pupil_dv)), float_format='%.16f') # for stats
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_touch1_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## TOUCH2 ########
+        '''
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
+            DFOUT = DF.groupby(['subject', 'touch2'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_touch2_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['touch2']) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_touch2_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## FINGER DISTANCE ########
+        '''
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
+            DFOUT = DF.groupby(['subject', 'finger_distance'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_finger_distance_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['finger_distance']) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_finger_distance_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## CORRECT X FINGER DISTANCE ########
+        '''
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        
+            # MEANS subject x bin x tone x congruent
+            DFOUT = DF.groupby(['subject', 'correct', 'finger_distance'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_correct-finger_distance_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # FOR PLOTTING
+
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['finger_distance', 'correct',]) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_correct-finger_distance_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## FREQUENCY X FINGER DISTANCE ########
+        '''
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        
+            # MEANS subject x bin x tone x congruent
+            DFOUT = DF.groupby(['subject', 'frequency', 'finger_distance'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_frequency-finger_distance_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # FOR PLOTTING
+
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['finger_distance', 'frequency',]) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_frequency-finger_distance_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        '''
+        ######## CORRECT X FREQUENCY X FINGER DISTANCE ########
+        '''
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        
+            # MEANS subject x bin x tone x congruent
+            DFOUT = DF.groupby(['subject', 'correct', 'frequency', 'finger_distance'])[pupil_dv].mean()
+            DFOUT.to_csv(os.path.join(self.averages_folder, '{}_correct-frequency-finger_distance_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # FOR PLOTTING
+
+            # save for RMANOVA format
+            DFANOVA =  DFOUT.unstack(['finger_distance', 'frequency', 'correct']) 
+            print(DFANOVA.columns)
+            DFANOVA.columns = DFANOVA.columns.to_flat_index() # flatten column index
+            DFANOVA.to_csv(os.path.join(self.jasp_folder, '{}_correct-frequency-finger_distance_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # for stats
+        
         print('success: average_conditions')
 
 
-    def plot_phasic_pupil_pe(self,):
-        """Plot the phasic pupil target_locked interaction frequency and accuracy in each trial bin window.
-        
-        Notes
-        -----
-        4 figures: per DV
-        GROUP LEVEL DATA
-        Separate lines for correct, x-axis is frequency conditions.
-        """
-        ylim = [ 
-            [-1.5,6.5], # t1
-            [-3.25,2.25], # t2
-            [-3, 5], # baseline
-            [0.6,1.5] # RT
-        ]
-        tick_spacer = [1, 1, 2, .2]
-        
-        dvs = ['pupil_feed_locked_t1', 'pupil_feed_locked_t2', 'RT']
-        ylabels = ['Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'RT (s)']
-        factor = ['touch1','correct'] 
-        xlabel = 'First touch'
-        xticklabels = ['1','2','3'] 
-        labels = ['Error','Correct']
-        colors = ['red','blue'] 
-        
-        xind = np.arange(len(xticklabels))
-        dot_offset = [0.05,-0.05]
-                
-        for dvi,pupil_dv in enumerate(dvs):
-            
-            fig = plt.figure(figsize=(2, 2))
-            ax = fig.add_subplot(111)
-            
-            DFIN = pd.read_csv(os.path.join(self.averages_folder, '{}_correct-touch1_{}.csv'.format(self.exp, pupil_dv)), float_precision='high')
-            DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
-            
-            # Group average per BIN WINDOW
-            GROUP = pd.DataFrame(DFIN.groupby(factor)[pupil_dv].agg(['mean', 'std']).reset_index())
-            GROUP['sem'] = np.true_divide(GROUP['std'], np.sqrt(len(self.subjects)))
-            print(GROUP)
-            
-            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-        
-            # # plot line graph
-            for x in[0,1]: # split by error, correct
-                D = GROUP[GROUP['correct']==x]
-                print(D)
-                ax.errorbar(xind, np.array(D['mean']), yerr=np.array(D['sem']), marker='o', markersize=3, fmt='-', elinewidth=1, label=labels[x], capsize=3, color=colors[x], alpha=1)
-
-            # set figure parameters
-            ax.set_title('{}'.format(pupil_dv))                
-            ax.set_ylabel(ylabels[dvi])
-            ax.set_xlabel(xlabel)
-            ax.set_xticks(xind)
-            ax.set_xticklabels(xticklabels)
-            ax.set_ylim(ylim[dvi])
-            ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer[dvi]))
-            # ax.legend()
-
-            sns.despine(offset=10, trim=True)
-            plt.tight_layout()
-            fig.savefig(os.path.join(self.figure_folder, '{}_correct-touch1_{}_lines.pdf'.format(self.exp, pupil_dv)))
-        print('success: plot_phasic_pupil_pe')
-        
-        
-    def plot_behavior(self,):
-        """Plot the group level means of accuracy and RT per mapping condition.
+    def plot_behavior_blocks(self,):
+        """Plot the means of accuracy and RT per block.
 
         Notes
         -----
         GROUP LEVEL DATA
-        x-axis is frequency conditions.
+        x-axis is block conditions.
         Figure output as PDF in figure folder.
         """
         #######################
@@ -590,100 +693,155 @@ class higherLevel(object):
         #######################
         dvs = ['correct','RT']
         ylabels = ['Accuracy', 'RT (s)']
-        factor = 'touch1'
-        xlabel = 'First touch'
-        xticklabels = ['1','2','3'] 
         bar_width = 0.7
-        xind = np.arange(len(xticklabels))
                 
         for dvi,pupil_dv in enumerate(dvs):
             
-            fig = plt.figure(figsize=(2,2))
-            ax = fig.add_subplot(111) # 1 subplot per bin window
-
-            DFIN = pd.read_csv(os.path.join(self.averages_folder,'{}_{}_{}.csv'.format(self.exp,'touch1',pupil_dv)), float_precision='high')
+            fig = plt.figure(figsize=(6,2))
+            ######################
+            # plot mean per block
+            ######################
+            ax = fig.add_subplot(121) # 1 subplot for blocks
+            
+            factor = 'block'
+            
+            DFIN = pd.read_csv(os.path.join(self.averages_folder,'{}_{}_{}.csv'.format(self.exp, factor, pupil_dv)), float_precision='high')
             DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
             
-            # Group average per BIN WINDOW
-            GROUP = pd.DataFrame(DFIN.groupby([factor])[pupil_dv].agg(['mean','std']).reset_index())
-            GROUP['sem'] = np.true_divide(GROUP['std'],np.sqrt(len(self.subjects)))
+            # PLOT BLOCKS!!
+            # Group average per BLOCK
+            
+            GROUP = pd.DataFrame(DFIN.groupby([factor, 'subject'])[pupil_dv].mean().reset_index())
+            
+            # GROUP = pd.DataFrame(DFIN.groupby([factor])[pupil_dv].agg(['mean', 'std']).reset_index())
+            # GROUP['sem'] = np.true_divide(GROUP['std'],np.sqrt(len(self.subjects)))
             print(GROUP)
             
+            # plot boxplot graph (kinda hacky...)
+            b1 = DFIN[DFIN['block']==0][pupil_dv].copy()
+            b2 = DFIN[DFIN['block']==1][pupil_dv].copy()
+            b3 = DFIN[DFIN['block']==2][pupil_dv].copy()
+            b4 = DFIN[DFIN['block']==3][pupil_dv].copy()
+            b5 = DFIN[DFIN['block']==4][pupil_dv].copy()
+            b6 = DFIN[DFIN['block']==5][pupil_dv].copy()
+            b7 = DFIN[DFIN['block']==6][pupil_dv].copy()
+            b8 = DFIN[DFIN['block']==7][pupil_dv].copy()
+            b9 = DFIN[DFIN['block']==8][pupil_dv].copy()
+            
+            d = [np.array(b1), np.array(b2), np.array(b3), np.array(b4), np.array(b5), np.array(b6), np.array(b7), np.array(b8), np.array(b9)]
+            
+            ax.boxplot(np.array(d).T)
+            if 'correct' in pupil_dv:
+                ax.axhline(0.33, lw=1, alpha=0.3, color = 'k') # Add horizontal line at chance level
+            
+            # set figure parameters
+            ax.set_ylabel(pupil_dv)
+            ax.set_xlabel('Block')
+
+            ######################
+            # plot mean across all blocks
+            ######################
+            ax = fig.add_subplot(122) # 1 subplot for blocks
+            
+            factor = pupil_dv
+            
+            # Group average per BIN WINDOW
+            GROUP = pd.DataFrame(DFIN.groupby([factor])[pupil_dv].agg(['mean', 'std']).reset_index())
+            GROUP['sem'] = np.true_divide(GROUP['std'],np.sqrt(len(self.subjects)))
+            print(GROUP)
+
             ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-                       
+
             # plot bar graph
             for xi,x in enumerate(GROUP[factor]):
                 ax.bar(xind[xi],np.array(GROUP['mean'][xi]), width=bar_width, yerr=np.array(GROUP['sem'][xi]), capsize=3, color=(0,0,0,0), edgecolor='black', ecolor='black')
-                
+
             # individual points, repeated measures connected with lines
             DFIN = DFIN.groupby(['subject',factor])[pupil_dv].mean() # hack for unstacking to work
             DFIN = DFIN.unstack(factor)
             for s in np.array(DFIN):
                 ax.plot(xind, s, linestyle='-', marker='o', markersize=3, fillstyle='full', color='black', alpha=.2) # marker, line, black
-                
-            # set figure parameters
-            ax.set_title(ylabels[dvi]) # repeat for consistent formatting
-            ax.set_ylabel(ylabels[dvi])
-            ax.set_xlabel(xlabel)
-            ax.set_xticks(xind)
-            ax.set_xticklabels(xticklabels)
-            if pupil_dv == 'correct':
-                ax.set_ylim([0.0,1.])
-                ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.2))
-                ax.axhline(0.33, linestyle='--', lw=1, alpha=1, color = 'k') # Add dashed horizontal line at chance level
-            else:
-                ax.set_ylim([0.2,1.8]) #RT
-                ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.4))
 
+            # set figure parameters
+            ax.set_ylabel(pupil_dvi)
+            ax.set_xlabel('Mean')
+            
             sns.despine(offset=10, trim=True)
             plt.tight_layout()
             fig.savefig(os.path.join(self.figure_folder,'{}_{}.pdf'.format(self.exp, pupil_dv)))
-        print('success: plot_behav')
+        print('success: plot_behavior_blocks')
     
-    
-    def individual_differences(self,):
-       """Correlate frequency effect in pupil DV with frequency effect in accuracy across participants, then plot.
-       
-       Notes
-       -----
-       3 figures: 1 per pupil DV
-       """
-       dvs = ['pupil_feed_locked_t1', 'pupil_feed_locked_t2', 'pupil_baseline_feed_locked']
-              
-       for sp,pupil_dv in enumerate(dvs):
-           fig = plt.figure(figsize=(2,2))
-           ax = fig.add_subplot(111) # 1 subplot per bin window
-           
-           B = pd.read_csv(os.path.join(self.jasp_folder,'{}_touch1_correct_rmanova.csv'.format(self.exp)), float_precision='high')
-           P = pd.read_csv(os.path.join(self.jasp_folder,'{}_touch1_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_precision='high')
+    def plot_behavior(self, ):
+        """Plot the group level means of accuracy and RT per conditions with 2 levels.
 
-           # frequency effect
-           P['main_effect_freq'] = (P['80']-P['20'])
-           B['main_effect_freq'] = (B['80']-B['20']) # fraction correct
-           
-           x = np.array(B['main_effect_freq'])
-           y = np.array(P['main_effect_freq'])           
-           # all subjects
-           r,pval = stats.spearmanr(x,y)
-           print('all subjects')
-           print(pupil_dv)
-           print('r={}, p-val={}'.format(r,pval))
-           # shell()
-           # all subjects in grey
-           ax.plot(x, y, 'o', markersize=3, color='green') # marker, line, black
-           m, b = np.polyfit(x, y, 1)
-           ax.plot(x, m*x+b, color='green',alpha=.5, label='all participants')
-           
-           # set figure parameters
-           ax.set_title('rs = {}, p = {}'.format(np.round(r,2),np.round(pval,3)))
-           ax.set_ylabel('{} (80-20%)'.format(pupil_dv))
-           ax.set_xlabel('accuracy (80-20%)')
-           # ax.legend()
-           
-           plt.tight_layout()
-           fig.savefig(os.path.join(self.figure_folder,'{}_frequency_individual_differences_{}.pdf'.format(self.exp, pupil_dv)))
-       print('success: individual_differences')
-       
+        Notes
+        -----
+        2 figures, GROUP LEVEL DATA
+        x-axis is condition.
+        Figure output as PDF in figure folder.
+        """
+        dvs = ['correct', 'RT']
+        ylabels = ['Accuracy', 'RT (s)']
+        conditions = ['frequency', 'touch1', 'touch2', 'finger_distance']
+        xticklabels = [
+            ['high','low'],
+            ['1', '2', '3'],
+            ['1', '2', '3'],
+            ['long', 'none', 'short'],
+        ]
+        color = 'black'        
+        bar_width = 0.7
+                
+        for dvi,pupil_dv in enumerate(dvs):
+            
+            for f,factor in enumerate(conditions):
+                
+                xind = np.arange(len(xticklabels[f]))
+                
+                fig = plt.figure(figsize=(2,2))
+                ax = fig.add_subplot(111) # 1 subplot per bin windo
+
+                DFIN = pd.read_csv(os.path.join(self.averages_folder,'{}_{}_{}.csv'.format(self.exp, factor, pupil_dv)), float_precision='high')
+                DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
+            
+                # Group average per BIN WINDOW
+                GROUP = pd.DataFrame(DFIN.groupby([factor])[pupil_dv].agg(['mean', 'std']).reset_index())
+                GROUP['sem'] = np.true_divide(GROUP['std'],np.sqrt(len(self.subjects)))
+                print(GROUP)
+                        
+                ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+                       
+                # plot bar graph
+                for xi,x in enumerate(GROUP[factor]):
+                    ax.bar(xind[xi],np.array(GROUP['mean'][xi]), width=bar_width, yerr=np.array(GROUP['sem'][xi]), capsize=3, color=(0,0,0,0), edgecolor='black', ecolor='black')
+                    print(x)
+                    
+                if 'correct' in pupil_dv:
+                    ax.axhline(0.33, lw=1, alpha=0.3, color = 'k') # Add horizontal line at chance level
+                
+                # individual points, repeated measures connected with lines
+                DFIN = DFIN.groupby(['subject',factor])[pupil_dv].mean() # hack for unstacking to work
+                DFIN = DFIN.unstack(factor)
+                for s in np.array(DFIN):
+                    ax.plot(xind, s, linestyle='-', marker='o', markersize=3, fillstyle='full', color='black', alpha=.2) # marker, line, black
+                    
+                # set figure parameters
+                ax.set_ylabel(ylabels[dvi])
+                ax.set_xlabel(factor)
+                ax.set_xticks(xind)
+                ax.set_xticklabels(xticklabels[f])
+                if pupil_dv == 'correct':
+                    ax.set_ylim([0.0,1.])
+                    ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.2))
+                else:
+                    ax.set_ylim([0.2,1.8]) #RT
+                    ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(.4))
+
+                sns.despine(offset=10, trim=True)
+                plt.tight_layout()
+                fig.savefig(os.path.join(self.figure_folder,'{}_{}_{}.pdf'.format(self.exp, factor, pupil_dv)))
+        print('success: plot_behav')
+        
     
     def dataframe_evoked_pupil_higher(self):
         """Compute evoked pupil responses.
@@ -692,15 +850,15 @@ class higherLevel(object):
         -----
         Split by conditions of interest. Save as higher level dataframe per condition of interest. 
         Evoked dataframes need to be combined with behavioral data frame, looping through subjects. 
-        DROP PHASE 2 trials.
         Drop omission trials (in subject loop).
         Output in dataframe folder.
         """
         
         DF = pd.read_csv(os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp)), float_precision='high')
         DF = DF.loc[:, ~DF.columns.str.contains('^Unnamed')] # remove all unnamed columns   
-        csv_names = deepcopy(['subject','correct','touch1','correct-touch1'])
-        factors = [['subject'],['correct'],['touch1'],['correct','touch1']]
+        
+        csv_names = deepcopy(['subject', 'correct', 'frequency', 'correct-frequency', 'touch1', 'touch2', 'finger_distance'])
+        factors = [['subject'], ['correct'], ['frequency'], ['correct','frequency'], ['touch1'], ['touch2'], ['finger_distance']]
         
         for t,time_locked in enumerate(self.time_locked):
             # Loop through conditions                
@@ -715,11 +873,11 @@ class higherLevel(object):
                 for s,subj in enumerate(self.subjects):
                     subj_num = re.findall(r'\d+', subj)[0]
                     SBEHAV = DF[DF['subject']==int(subj_num)].reset_index() # not 'sub-' in DF
-                    SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory,subj,'{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj,self.exp,time_locked)), float_precision='high'))
+                    SPUPIL = pd.DataFrame(pd.read_csv(os.path.join(self.project_directory,subj,'{}_{}_recording-eyetracking_physio_{}_evoked_basecorr.csv'.format(subj, self.exp, time_locked)), float_precision='high'))
                     SPUPIL = SPUPIL.loc[:, ~SPUPIL.columns.str.contains('^Unnamed')] # remove all unnamed columns
                     
                     # merge behavioral and evoked dataframes so we can group by conditions
-                    SDATA = pd.concat([SBEHAV,SPUPIL],axis=1)
+                    SDATA = pd.concat([SBEHAV, SPUPIL],axis=1)
                     
                     #### DROP OMISSIONS HERE ####
                     SDATA = SDATA[SDATA['drop_trial'] == 0] # drop outliers based on RT
@@ -731,7 +889,7 @@ class higherLevel(object):
                     # add to condition dataframe
                     COND = pd.concat([COND,df],join='outer',axis=0) # can also do: this_cond = this_cond.append()  
                 # save output file
-                COND.to_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp,time_locked,cond)), float_format='%.16f')
+                COND.to_csv(os.path.join(self.dataframe_folder,'{}_{}_evoked_{}.csv'.format(self.exp, time_locked, cond)), float_format='%.16f')
         print('success: dataframe_evoked_pupil_higher')
     
     
@@ -1041,45 +1199,116 @@ class higherLevel(object):
         plt.tight_layout()
         fig.savefig(os.path.join(self.figure_folder,'{}_evoked_{}.pdf'.format(self.exp, csv_name)))
         print('success: plot_evoked_pupil')
-    
-    
-    def information_theory_code_stimuli(self, fn_in):
-        """Add a new column in the subjects dataframe to give each letter-color pair a unique identifier.
         
-        Parameters
-        ----------
-        fn_in : str
-            The path to the subjects' dataframe.
+        
+    def plot_phasic_pupil_pe(self,):
+        """Plot the phasic pupil target_locked interaction frequency and accuracy in each trial bin window.
         
         Notes
         -----
-        6 letters and 6 shades of green -> 36 different letter-color pair combinations.
-        
-        New column name is "touch_pair"
+        4 figures: per DV
+        GROUP LEVEL DATA
+        Separate lines for correct, x-axis is frequency conditions.
         """
-        df_in = pd.read_csv(fn_in, float_precision='high')
+        ylim = [ 
+            [-1.5,6.5], # t1
+            [-3.25,2.25], # t2
+            [-3, 5], # baseline
+            [0.6,1.5] # RT
+        ]
+        tick_spacer = [1, 1, 2, .2]
         
-        # make new column to give each letter-color combination a unique identifier (1 - 36)        
-        mapping = [
-            (df_in['touch1'] == 1) & (df_in['touch2'] == 1), 
-            (df_in['touch1'] == 1) & (df_in['touch2'] == 2), 
-            (df_in['touch1'] == 1) & (df_in['touch2'] == 3), 
+        dvs = ['pupil_feed_locked_t1', 'pupil_feed_locked_t2', 'RT']
+        ylabels = ['Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'RT (s)']
+        factor = ['touch1','correct'] 
+        xlabel = 'First touch'
+        xticklabels = ['1','2','3'] 
+        labels = ['Error','Correct']
+        colors = ['red','blue'] 
+        
+        xind = np.arange(len(xticklabels))
+        dot_offset = [0.05,-0.05]
+                
+        for dvi,pupil_dv in enumerate(dvs):
             
-            (df_in['touch1'] == 2) & (df_in['touch2'] == 1), 
-            (df_in['touch1'] == 2) & (df_in['touch2'] == 2), 
-            (df_in['touch1'] == 2) & (df_in['touch2'] == 3),
+            fig = plt.figure(figsize=(2, 2))
+            ax = fig.add_subplot(111)
             
-            (df_in['touch1'] == 3) & (df_in['touch2'] == 1), 
-            (df_in['touch1'] == 3) & (df_in['touch2'] == 2), 
-            (df_in['touch1'] == 3) & (df_in['touch2'] == 3),
-            ]
+            DFIN = pd.read_csv(os.path.join(self.averages_folder, '{}_correct-touch1_{}.csv'.format(self.exp, pupil_dv)), float_precision='high')
+            DFIN = DFIN.loc[:, ~DFIN.columns.str.contains('^Unnamed')] # drop all unnamed columns
+            
+            # Group average per BIN WINDOW
+            GROUP = pd.DataFrame(DFIN.groupby(factor)[pupil_dv].agg(['mean', 'std']).reset_index())
+            GROUP['sem'] = np.true_divide(GROUP['std'], np.sqrt(len(self.subjects)))
+            print(GROUP)
+            
+            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
         
-        elements = np.arange(9) # also elements is the same as priors (start with 0 so they can be indexed by element)
-        df_in['touch_pair'] = np.select(mapping, elements)
-        
-        df_in.to_csv(fn_in, float_format='%.16f') # save with new columns
-        print('success: information_theory_code_stimuli')   
+            # # plot line graph
+            for x in[0,1]: # split by error, correct
+                D = GROUP[GROUP['correct']==x]
+                print(D)
+                ax.errorbar(xind, np.array(D['mean']), yerr=np.array(D['sem']), marker='o', markersize=3, fmt='-', elinewidth=1, label=labels[x], capsize=3, color=colors[x], alpha=1)
+
+            # set figure parameters
+            ax.set_title('{}'.format(pupil_dv))                
+            ax.set_ylabel(ylabels[dvi])
+            ax.set_xlabel(xlabel)
+            ax.set_xticks(xind)
+            ax.set_xticklabels(xticklabels)
+            ax.set_ylim(ylim[dvi])
+            ax.yaxis.set_major_locator(matplotlib.ticker.MultipleLocator(tick_spacer[dvi]))
+            # ax.legend()
+
+            sns.despine(offset=10, trim=True)
+            plt.tight_layout()
+            fig.savefig(os.path.join(self.figure_folder, '{}_correct-touch1_{}_lines.pdf'.format(self.exp, pupil_dv)))
+        print('success: plot_phasic_pupil_pe')
     
+    
+    def individual_differences(self,):
+       """Correlate frequency effect in pupil DV with frequency effect in accuracy across participants, then plot.
+       
+       Notes
+       -----
+       3 figures: 1 per pupil DV
+       """
+       dvs = ['pupil_feed_locked_t1', 'pupil_feed_locked_t2', 'pupil_baseline_feed_locked']
+              
+       for sp,pupil_dv in enumerate(dvs):
+           fig = plt.figure(figsize=(2,2))
+           ax = fig.add_subplot(111) # 1 subplot per bin window
+           
+           B = pd.read_csv(os.path.join(self.jasp_folder,'{}_touch1_correct_rmanova.csv'.format(self.exp)), float_precision='high')
+           P = pd.read_csv(os.path.join(self.jasp_folder,'{}_touch1_{}_rmanova.csv'.format(self.exp, pupil_dv)), float_precision='high')
+
+           # frequency effect
+           P['main_effect_freq'] = (P['80']-P['20'])
+           B['main_effect_freq'] = (B['80']-B['20']) # fraction correct
+           
+           x = np.array(B['main_effect_freq'])
+           y = np.array(P['main_effect_freq'])           
+           # all subjects
+           r,pval = stats.spearmanr(x,y)
+           print('all subjects')
+           print(pupil_dv)
+           print('r={}, p-val={}'.format(r,pval))
+           # shell()
+           # all subjects in grey
+           ax.plot(x, y, 'o', markersize=3, color='green') # marker, line, black
+           m, b = np.polyfit(x, y, 1)
+           ax.plot(x, m*x+b, color='green',alpha=.5, label='all participants')
+           
+           # set figure parameters
+           ax.set_title('rs = {}, p = {}'.format(np.round(r,2),np.round(pval,3)))
+           ax.set_ylabel('{} (80-20%)'.format(pupil_dv))
+           ax.set_xlabel('accuracy (80-20%)')
+           # ax.legend()
+           
+           plt.tight_layout()
+           fig.savefig(os.path.join(self.figure_folder,'{}_frequency_individual_differences_{}.pdf'.format(self.exp, pupil_dv)))
+       print('success: individual_differences')
+           
 
     def idt_model(self, df, df_data_column, elements):
         """Process Ideal Learner Model.
@@ -1196,7 +1425,7 @@ class higherLevel(object):
         elements = np.arange(9)
         
         fn_in = os.path.join(self.dataframe_folder,'{}_subjects.csv'.format(self.exp))
-        self.information_theory_code_stimuli(fn_in) # code stimuli based on predictions and based on targets
+        # self.information_theory_code_stimuli(fn_in) # code stimuli based on predictions and based on targets
 
         df_in = pd.read_csv(fn_in, float_precision='high')
         df_in = df_in.loc[:, ~df_in.columns.str.contains('^Unnamed')]
@@ -1226,7 +1455,7 @@ class higherLevel(object):
         print('success: information_theory_estimates')
         
 
-    def pupil_information_correlation_matrix(self,):
+    def information_correlation_matrix(self,):
         """Correlate information variables to evaluate multicollinearity.
         
         Notes
@@ -1260,7 +1489,6 @@ class higherLevel(object):
             x = this_df[ivs] # select information variable columns
             x_corr = x.corr() # correlation matrix
             
-            
             corr_out.append(x_corr) # beta KLdivergence (target-prediction)
         
         corr_subjects = np.array(corr_out)
@@ -1269,7 +1497,7 @@ class higherLevel(object):
         
         t, pvals = sp.stats.ttest_1samp(corr_subjects, 0, axis=0)
         
-        f = open(os.path.join(self.figure_folder, '{}_pupil_information_correlation_matrix.txt'.format(self.exp)), "w")
+        f = open(os.path.join(self.figure_folder, '{}_information_correlation_matrix.txt'.format(self.exp)), "w")
         f.write('corr_mean')
         f.write('\n')
         f.write('{}'.format(corr_mean))
@@ -1304,9 +1532,9 @@ class higherLevel(object):
         # whole figure format
         sns.despine(offset=10, trim=True)
         plt.tight_layout()
-        fig.savefig(os.path.join(self.figure_folder,'{}_pupil_information_correlation_matrix.pdf'.format(self.exp)))
+        fig.savefig(os.path.join(self.figure_folder,'{}_information_correlation_matrix.pdf'.format(self.exp)))
                         
-        print('success: pupil_information_correlation_matrix')
+        print('success: information_correlation_matrix')
 
 
     def dataframe_evoked_correlation(self):
