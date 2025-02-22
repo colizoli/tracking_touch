@@ -117,8 +117,8 @@ class pupilPreprocess(object):
     """
     
     def __init__(self, subject, edf, project_directory, eye, break_trials, msgs, tolkens, sample_rate, tw_blinks, mph, mpd, threshold):
-        self.subject = str(subject)
-        self.alias = edf
+        self.subject = 'sub-{}'.format(subject)
+        self.alias = '{}_{}'.format(self.subject, edf)
         self.project_directory = project_directory
         self.base_directory = os.path.join(self.project_directory, self.subject)
         self.gazeOutputFileName = os.path.join(self.base_directory, edf + '.gaz')
@@ -147,7 +147,8 @@ class pupilPreprocess(object):
             
         if not os.path.isdir(self.figure_folder):
             os.mkdir(self.figure_folder)
-        
+            
+
     def convert_edfs(self,):
         """Convert the EDF file to ASC using the edf2asc executable (as part of the EyeLink desktop application).
         
@@ -1036,10 +1037,10 @@ class trials(object):
     
     def __init__(self,subject, edf, project_directory, sample_rate, phases, time_locked, pupil_step_lim, baseline_window):
         """Constructor method"""
-        self.subject = subject
-        self.alias = edf
-        self.project_directory = os.path.join(project_directory,self.subject) # single-subject directory
-        self.figure_folder = os.path.join(project_directory,'figures','preprocessing') # group-level directory for easy inspection
+        self.subject = 'sub-{}'.format(subject)
+        self.alias = '{}_{}'.format(self.subject, edf)
+        self.project_directory = os.path.join(project_directory, self.subject) # single-subject directory
+        self.figure_folder = os.path.join(project_directory, 'figures', 'preprocessing') # group-level directory for easy inspection
         self.sample_rate = sample_rate
         self.phases = phases
         ##############################    

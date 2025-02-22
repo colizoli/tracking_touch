@@ -549,7 +549,7 @@ class higherLevel(object):
         '''
         ######## CORRECT x FREQUENCY ########
         '''
-        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
         
             # MEANS subject x bin x tone x congruent
             DFOUT = DF.groupby(['subject', 'correct', 'frequency'])[pupil_dv].mean()
@@ -563,7 +563,7 @@ class higherLevel(object):
         '''
         ######## BLOCK x CORRECT x FREQUENCY ########
         '''
-        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
         
             # MEANS subject x bin x tone x congruent
             DFOUT = DF.groupby(['subject', 'block', 'correct', 'frequency'])[pupil_dv].mean()
@@ -577,7 +577,7 @@ class higherLevel(object):
         '''
         ######## CORRECT ########
         '''
-        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
         
             # MEANS subject x bin x tone x congruent
             DFOUT = DF.groupby(['subject', 'correct'])[pupil_dv].mean()
@@ -591,7 +591,7 @@ class higherLevel(object):
         '''
         ######## FREQUENCY ########
         '''
-        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
             DFOUT = DF.groupby(['subject', 'frequency'])[pupil_dv].mean()
             DFOUT.to_csv(os.path.join(self.averages_folder, '{}_frequency_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
             # save for RMANOVA format
@@ -603,7 +603,7 @@ class higherLevel(object):
         '''
         ######## TOUCH1 ########
         '''
-        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
             DFOUT = DF.groupby(['subject', 'touch1'])[pupil_dv].mean()
             DFOUT.to_csv(os.path.join(self.averages_folder, '{}_touch1_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
             # save for RMANOVA format
@@ -614,7 +614,7 @@ class higherLevel(object):
         '''
         ######## TOUCH2 ########
         '''
-        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
             DFOUT = DF.groupby(['subject', 'touch2'])[pupil_dv].mean()
             DFOUT.to_csv(os.path.join(self.averages_folder, '{}_touch2_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
             # save for RMANOVA format
@@ -625,7 +625,7 @@ class higherLevel(object):
         '''
         ######## FINGER DISTANCE ########
         '''
-        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: # mean accuracy
             DFOUT = DF.groupby(['subject', 'finger_distance'])[pupil_dv].mean()
             DFOUT.to_csv(os.path.join(self.averages_folder, '{}_finger_distance_{}.csv'.format(self.exp, pupil_dv)), float_format='%.16f') # For descriptives
             # save for RMANOVA format
@@ -636,7 +636,7 @@ class higherLevel(object):
         '''
         ######## CORRECT X FINGER DISTANCE ########
         '''
-        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
         
             # MEANS subject x bin x tone x congruent
             DFOUT = DF.groupby(['subject', 'correct', 'finger_distance'])[pupil_dv].mean()
@@ -650,7 +650,7 @@ class higherLevel(object):
         '''
         ######## FREQUENCY X FINGER DISTANCE ########
         '''
-        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        for pupil_dv in ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
         
             # MEANS subject x bin x tone x congruent
             DFOUT = DF.groupby(['subject', 'frequency', 'finger_distance'])[pupil_dv].mean()
@@ -664,7 +664,7 @@ class higherLevel(object):
         '''
         ######## CORRECT X FREQUENCY X FINGER DISTANCE ########
         '''
-        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
+        for pupil_dv in ['RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']: 
         
             # MEANS subject x bin x tone x congruent
             DFOUT = DF.groupby(['subject', 'correct', 'frequency', 'finger_distance'])[pupil_dv].mean()
@@ -691,17 +691,17 @@ class higherLevel(object):
         #######################
         # Frequency
         #######################
-        dvs = ['correct','RT']
+        dvs = ['correct', 'RT']
         ylabels = ['Accuracy', 'RT (s)']
         bar_width = 0.7
                 
         for dvi,pupil_dv in enumerate(dvs):
             
-            fig = plt.figure(figsize=(6,2))
+            fig = plt.figure(figsize=(3,2))
             ######################
             # plot mean per block
             ######################
-            ax = fig.add_subplot(121) # 1 subplot for blocks
+            ax = fig.add_subplot(111) # 1 subplot for blocks
             
             factor = 'block'
             
@@ -727,10 +727,10 @@ class higherLevel(object):
             b7 = DFIN[DFIN['block']==6][pupil_dv].copy()
             b8 = DFIN[DFIN['block']==7][pupil_dv].copy()
             b9 = DFIN[DFIN['block']==8][pupil_dv].copy()
-            
-            d = [np.array(b1), np.array(b2), np.array(b3), np.array(b4), np.array(b5), np.array(b6), np.array(b7), np.array(b8), np.array(b9)]
-            
-            ax.boxplot(np.array(d).T)
+                        
+            # plot boxes
+            # shell()
+            ax.boxplot([np.array(b1), np.array(b2), np.array(b3), np.array(b4), np.array(b5), np.array(b6), np.array(b7), np.array(b8), np.array(b9)])
             if 'correct' in pupil_dv:
                 ax.axhline(0.33, lw=1, alpha=0.3, color = 'k') # Add horizontal line at chance level
             
@@ -738,37 +738,40 @@ class higherLevel(object):
             ax.set_ylabel(pupil_dv)
             ax.set_xlabel('Block')
 
-            ######################
-            # plot mean across all blocks
-            ######################
-            ax = fig.add_subplot(122) # 1 subplot for blocks
-            
-            factor = pupil_dv
-            
-            # Group average per BIN WINDOW
-            GROUP = pd.DataFrame(DFIN.groupby([factor])[pupil_dv].agg(['mean', 'std']).reset_index())
-            GROUP['sem'] = np.true_divide(GROUP['std'],np.sqrt(len(self.subjects)))
-            print(GROUP)
-
-            ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
-
-            # plot bar graph
-            for xi,x in enumerate(GROUP[factor]):
-                ax.bar(xind[xi],np.array(GROUP['mean'][xi]), width=bar_width, yerr=np.array(GROUP['sem'][xi]), capsize=3, color=(0,0,0,0), edgecolor='black', ecolor='black')
-
-            # individual points, repeated measures connected with lines
-            DFIN = DFIN.groupby(['subject',factor])[pupil_dv].mean() # hack for unstacking to work
-            DFIN = DFIN.unstack(factor)
-            for s in np.array(DFIN):
-                ax.plot(xind, s, linestyle='-', marker='o', markersize=3, fillstyle='full', color='black', alpha=.2) # marker, line, black
-
-            # set figure parameters
-            ax.set_ylabel(pupil_dvi)
-            ax.set_xlabel('Mean')
-            
             sns.despine(offset=10, trim=True)
             plt.tight_layout()
             fig.savefig(os.path.join(self.figure_folder,'{}_{}.pdf'.format(self.exp, pupil_dv)))
+            ######################
+            # plot mean across all blocks
+            ######################
+            # ax = fig.add_subplot(122) # 1 subplot for blocks
+            #
+            # factor = pupil_dv
+            #
+            # # Group average per BIN WINDOW
+            # GROUP = pd.DataFrame(DFIN.groupby([factor])[pupil_dv].agg(['mean', 'std']).reset_index())
+            # GROUP['sem'] = np.true_divide(GROUP['std'],np.sqrt(len(self.subjects)))
+            # print(GROUP)
+            #
+            # ax.axhline(0, lw=1, alpha=1, color = 'k') # Add horizontal line at t=0
+            #
+            # # plot bar graph
+            # for xi,x in enumerate(GROUP[factor]):
+            #     ax.bar(xind[xi],np.array(GROUP['mean'][xi]), width=bar_width, yerr=np.array(GROUP['sem'][xi]), capsize=3, color=(0,0,0,0), edgecolor='black', ecolor='black')
+            #
+            # # individual points, repeated measures connected with lines
+            # DFIN = DFIN.groupby(['subject',factor])[pupil_dv].mean() # hack for unstacking to work
+            # DFIN = DFIN.unstack(factor)
+            # for s in np.array(DFIN):
+            #     ax.plot(xind, s, linestyle='-', marker='o', markersize=3, fillstyle='full', color='black', alpha=.2) # marker, line, black
+            #
+            # # set figure parameters
+            # ax.set_ylabel(pupil_dvi)
+            # ax.set_xlabel('Mean')
+            #
+            # sns.despine(offset=10, trim=True)
+            # plt.tight_layout()
+            # fig.savefig(os.path.join(self.figure_folder,'{}_{}.pdf'.format(self.exp, pupil_dv)))
         print('success: plot_behavior_blocks')
     
 
@@ -781,7 +784,7 @@ class higherLevel(object):
         x-axis is condition.
         Figure output as PDF in figure folder.
         """
-        dvs = ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']
+        dvs = ['correct', 'RT', 'pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']
         ylabels = ['Accuracy', 'RT (s)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', ]
         conditions = ['frequency', 'touch1', 'touch2', 'finger_distance']
         xticklabels = [
@@ -862,7 +865,7 @@ class higherLevel(object):
         ]
         tick_spacer = [1, 1, 2, .2]
         
-        dvs = ['pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked', 'RT']
+        dvs = ['pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked', 'RT']
         ylabels = ['Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'Pupil response\n(% signal change)', 'RT (s)']
         factor = ['frequency','correct'] 
         xlabel = 'Frequency'
@@ -1401,7 +1404,7 @@ class higherLevel(object):
        -----
        3 figures: 1 per pupil DV
        """
-       dvs = ['pupil_feed_locked_t1', 'pupil_resp_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']
+       dvs = ['pupil_feed_locked_t1', 'pupil_stim_locked_t1', 'pupil_baseline_feed_locked', 'pupil_baseline_stim_locked']
               
        for sp,pupil_dv in enumerate(dvs):
            fig = plt.figure(figsize=(2,2))

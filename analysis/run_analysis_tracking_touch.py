@@ -10,6 +10,8 @@ Python 3.9
 
 Notes:
 Need to have the EYELINK software installed on the terminal
+
+Anaconda environment: gpe39
 ================================================
 """
 
@@ -32,7 +34,7 @@ from IPython import embed as shell # for debugging
 # -----------------------
 # Levels (toggle True/False)
 # ----------------------- 
-pre_process     = False  # pupil preprocessing is done on entire time series during the 2AFC decision task
+pre_process     = False  # pupil preprocessing is done on entire time series during the decision task
 trial_process   = False # cut out events for each trial and calculate trial-wise baselines, baseline correct evoked responses (2AFC decision)
 higher_level    = True # all subjects' dataframe, pupil and behavior higher level analyses & figures (3AFC decision)
  
@@ -44,11 +46,14 @@ home_dir        = os.path.dirname(os.getcwd()) # one level up from analysis fold
 source_dir      = os.path.join(home_dir, 'sourcedata')
 data_dir        = os.path.join(home_dir, 'derivatives')
 experiment_name = 'task-touch_prediction' # 3AFC Decision Task
+edf             = '{}_recording-eyetracking_physio'.format(experiment_name)
 
 # -----------------------
 # Participants
 # -----------------------
 ppns = pd.read_csv(os.path.join(home_dir, 'analysis', 'participants_tracking_touch.csv'))
+# ppns = pd.read_csv(os.path.join(home_dir, 'analysis', 'participants_tracking_touch_process.csv'))
+
 # subjects = ['sub-{}'.format(s) for s in ppns['subject']]
 subjects = ppns['subject']
 
@@ -71,6 +76,7 @@ for s,subj in enumerate(subjects):
     else:
         print('{} derivatives folder already exists. Delete to overwrite.'.format(subj))
 # Everything after here should run only on the 'derivatives' directory.
+# Note: Delete timestamps by hand in derivatives folder
 
 # -----------------------
 # Event-locked pupil parameters (shared)
@@ -96,8 +102,6 @@ if pre_process:
     threshold = 0       # detect peaks (valleys) that are greater (smaller) than `threshold` in relation to their immediate neighbors
 
     for s,subj in enumerate(subjects):
-        edf = '{}_{}_recording-eyetracking_physio'.format(subj, experiment_name)
-
         pupilPreprocess = pupil_preprocessing.pupilPreprocess(
             subject             = subj,
             edf                 = edf,
@@ -112,8 +116,8 @@ if pre_process:
             mpd                 = mpd,
             threshold           = threshold,
             )
-        pupilPreprocess.convert_edfs()              # converts EDF to asc, msg and gaze files (run locally)
-        pupilPreprocess.extract_pupil()             # read trials, and saves time locked pupil series as NPY array in processed folder
+        # pupilPreprocess.convert_edfs()              # converts EDF to asc, msg and gaze files (run locally)
+        # pupilPreprocess.extract_pupil()             # read trials, and saves time locked pupil series as NPY array in processed folder
         pupilPreprocess.preprocess_pupil()          # blink interpolation, filtering, remove blinks/saccades, split blocks, percent signal change, plots output
 
 # -----------------------
@@ -121,8 +125,7 @@ if pre_process:
 # -----------------------      
 if trial_process:  
     # process 1 subject at a time
-    for s,subj in enumerate(subjects):
-        edf = '{}_{}_recording-eyetracking_physio'.format(subj, experiment_name)
+    for s,subj in enumerate(subjects):        
         trialLevel = pupil_preprocessing.trials(
             subject             = subj,
             edf                 = edf,
@@ -146,8 +149,8 @@ if higher_level:
         experiment_name         = experiment_name,
         project_directory       = data_dir, 
         sample_rate             = sample_rate,
-        time_locked             = ['resp_locked', 'feed_locked'],
-        pupil_step_lim          = [pupil_step_lim[2], pupil_step_lim[3]],                
+        time_locked             = ['stim_locked', 'feed_locked'],
+        pupil_step_lim          = [pupil_step_lim[1], pupil_step_lim[3]],                
         baseline_window         = baseline_window,              
         pupil_time_of_interest  = [[3.0,3.5]], # time windows to average phasic pupil, per event, in higher.plot_evoked_pupil
         )
@@ -155,8 +158,8 @@ if higher_level:
     # higherLevel.create_subjects_dataframe()     # concantenates all subjects, flags missed trials, saves higher level data frame
     ''' Note: the functions after this are using: task-tracking_touch_subjects.csv
     '''
-    # higherLevel.calculate_actual_frequencies()  # calcuate the actual frequencies of the touch pairs
     # higherLevel.code_stimuli()                  # adds columns for unique touch-pairs, and frequency and finger-distance conditions
+    # higherLevel.calculate_actual_frequencies()  # calcuate the actual frequencies of the touch pairs
     # higherLevel.average_conditions()            # group level data frames for all main effects + interaction
     # higherLevel.plot_behavior_blocks()          # boxplots for accuracy and RT per block
     # higherLevel.plot_1way_effects()             # simple bar plots for 1-way effects
@@ -165,7 +168,7 @@ if higher_level:
     ''' Evoked pupil response
     '''
     # higherLevel.dataframe_evoked_pupil_higher()  # per event of interest, outputs one dataframe for all trials for all subject on pupil time series
-    higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
+    # higherLevel.plot_evoked_pupil()              # plots evoked pupil per event of interest, group level, main effects + interaction
     
     ''' Phasic time-window averaged pupil response
     '''
@@ -177,9 +180,9 @@ if higher_level:
     # higherLevel.information_theory_estimates()
     # higherLevel.information_correlation_matrix()
     # higherLevel.dataframe_evoked_correlation()
-    # higherLevel.plot_pupil_information_regression_evoked()
-    # higherLevel.average_information_conditions()
-    # higherLevel.plot_information()
+    higherLevel.plot_pupil_information_regression_evoked()
+    higherLevel.average_information_conditions()
+    higherLevel.plot_information()
     
     # not using
     # higherLevel.partial_correlation_information()
