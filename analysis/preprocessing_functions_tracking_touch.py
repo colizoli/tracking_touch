@@ -121,9 +121,9 @@ class pupilPreprocess(object):
         self.alias = '{}_{}'.format(self.subject, edf)
         self.project_directory = project_directory
         self.base_directory = os.path.join(self.project_directory, self.subject)
-        self.gazeOutputFileName = os.path.join(self.base_directory, edf + '.gaz')
-        self.messageOutputFileName = os.path.join(self.base_directory, edf + '.msg')
-        self.standardOutputFileName = os.path.join(self.base_directory, edf + '.asc')
+        self.gazeOutputFileName = os.path.join(self.base_directory, self.alias + '.gaz')
+        self.messageOutputFileName = os.path.join(self.base_directory, self.alias + '.msg')
+        self.standardOutputFileName = os.path.join(self.base_directory, self.alias + '.asc')
         self.eye = eye
         self.break_trials = break_trials
         self.msgs = msgs
