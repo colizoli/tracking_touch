@@ -24,7 +24,7 @@ import random
 import numpy as np
 import pandas as pd
 import os, time  # for paths and data
-# from IPython import embed as shell # for Olympia debugging only, comment out if crashes
+from IPython import embed as shell # for Olympia debugging only, comment out if crashes
 import solenoid_functions
 global serial_port
 
@@ -171,24 +171,9 @@ instr3_txt = "Now the actual experiment will begin!\
 \n\nAgain the keys are Index /Middle /Ring finger: Left/ Down /Right arrow keys.\
 \n\n<Press any button to BEGIN the EXPERIMENT>".format(direction_hand)
 
-instr3_down_txt = "Now the actual experiment will begin!\
-\nPlace your hand so it is facing {}\
-\n\nThere will be 9-10 blocks in total (~5 min each), each with several trials.\
-\nIn between the blocks, you can take a break to move your head.\
-\n\nWhen you are ready to continue with the next block,\
-\nplace your head back in the chin rest and fixate on the dot at the center of the screen.\
-\n\nAgain the keys are Index /Middle /Ring finger: Left/ Down /Right arrow keys.\
-\n\n<Press any button to BEGIN the EXPERIMENT>".format(direction_hand)
-
 normal_break_text = "Take a short break!\
 \n\n Keep your left hand facing {}. \
 \n\nAgain the keys are Index/ Middle/ Ring finger: Left/ Down /Right arrow keys.\
-\n\nPush any button when you are ready to CONTINUE.".format(direction_hand)
-
-first_flipped_break_text = "Take a short break!\
-\n\nFROM NOW ON, POSITION YOUR LEFT HAND SO IT IS FACING {}. \
-\n\nAgain the keys are Index/ Middle/ Ring finger: Left/ Down /Right arrow keys.\
-\nBlink as you normally would, but try not to move your head during the experiment.\
 \n\nPush any button when you are ready to CONTINUE.".format(direction_hand)
  
 stim_instr   = visual.TextStim(win, text=instr1_txt, color='black', pos=(0.0, 0.0), wrapWidth=ww)
@@ -249,10 +234,33 @@ def check_keys(this_clock):
             return keys # save all button press timings for cleaning data
 
 
+def update_break_text(type_break, direction_hand):
+    """Updates the break texts based on hand direction.
+        Returns break_text
+    """
+    
+    first_flipped_break_text = "Take a short break!\
+    \n\nFROM NOW ON, POSITION YOUR LEFT HAND SO IT IS FACING {}. \
+    \n\nAgain the keys are Index/ Middle/ Ring finger: Left/ Down /Right arrow keys.\
+    \nBlink as you normally would, but try not to move your head during the experiment.\
+    \n\nPush any button when you are ready to CONTINUE.".format(direction_hand)
+
+    flipped_break_text = "Take a short break!\
+    \n\n Keep your left hand facing {}. \
+    \n\nAgain the keys are Index/ Middle/ Ring finger: Left/ Down /Right arrow keys.\
+    \n\nPush any button when you are ready to CONTINUE.".format(direction_hand)
+    
+    if type_break == 'first':
+        break_text = first_flipped_break_text
+    else:
+        break_text = flipped_break_text
+    return break_text
+    
+
 # define break and block functions
 def present_break(break_text):
     """ Present a break of the experiment with the given text.
-    """
+    """    
     if eye_mode:
         eye.pause_stop_recording() # pause recording
     stim_instr.setText(f"Take a short break! \
@@ -433,10 +441,14 @@ for block in np.arange(MIN_BLOCKS): # 0,1,2,3,4
                 direction_hand  = 'DOWNWARDS'
             else:
                 direction_hand = 'UPWARDS'
+            # need to dynamically update the break text by calling a function   
+            first_flipped_break_text = update_break_text('first', direction_hand)
             present_break(first_flipped_break_text)
+            
             for block in np.arange(FLIP_BLOCKS): # continue 
                 present_block()
                 if block < FLIP_BLOCKS - 1: # end of experiment
+                    flipped_break_text = update_break_text('normal', direction_hand)
                     present_break(flipped_break_text)
     else:
         present_break(normal_break_text) # break first 4 blocks with initial break text
